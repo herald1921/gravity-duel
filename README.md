@@ -1,5 +1,7 @@
 # Gravity Duel
 
+**Play online:** the GitHub Pages link is shown in the repository sidebar after the first successful deployment.
+
 Gravity Duel is a browser arcade game built with Phaser and TypeScript. Move through compact orbital arenas, aim independently, and bend projectiles around planets to defeat an AI rival.
 
 This repository contains the `v0.9.0` phase-one playtest. The update focuses on clearer art, easier controls, and a faster combat rhythm while preserving the nine existing arenas, special weapons, badges, ship paints, local multiplayer, and the classic control scheme.
