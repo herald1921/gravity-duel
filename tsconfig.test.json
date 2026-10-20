@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".test-build",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/config.ts",
+    "src/physics/**/*.ts",
+    "src/entities/*.ts",
+    "src/maps/*.ts",
+    "src/game/*.ts",
+    "src/ai/*.ts",
+    "src/platform/Lifecycle.ts",
+    "src/platform/Profile.ts",
+    "src/rendering/projectileFeedback.ts",
+    "src/rendering/Music.ts",
+    "src/rendering/Sound.ts",
+    "src/input/*.ts",
+    "src/platform/CrazyGames.ts"
+  ]
+}

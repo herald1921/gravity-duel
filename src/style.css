@@ -1,0 +1,14 @@
+:root { color-scheme: dark; background: #050911; font-family: Arial, sans-serif; }
+* { box-sizing: border-box; }
+html, body, #game { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { overscroll-behavior: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#game { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+canvas { display: block; touch-action: none; }
+canvas:focus { outline: none; }
+noscript { position: fixed; inset: 40% 10%; color: #e4efff; text-align: center; }
+#orientation { position: fixed; z-index: 10; inset: 0; background: #080e1b; color: #e7f1fa; text-align: center; padding: max(24px, 18dvh) 20px 24px; overflow-y: auto; }
+#orientation[hidden] { display: none; }
+.rotate-icon { font-size: 70px; color: #77eee3; margin-bottom: 20px; }
+#orientation strong { font-size: 24px; } #orientation p { color: #a4b6c7; }
+#orientation-continue { margin-top: 16px; min-height: 48px; padding: 14px 24px; border: 1px solid #77eee3; border-radius: 10px; background: #142b38; color: #e7f1fa; font: bold 16px Arial, sans-serif; cursor: pointer; touch-action: manipulation; }
+#orientation-continue:focus-visible { outline: 3px solid #77eee3; outline-offset: 4px; }

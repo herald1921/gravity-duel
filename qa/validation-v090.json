@@ -1,0 +1,66 @@
+{
+  "version": "0.9.0",
+  "date": "2026-10-16",
+  "tests": 124,
+  "passed": 124,
+  "failed": 0,
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "originalFilesVerified": 42,
+  "originalFilesChanged": 0,
+  "browserChecks": [
+    "mouse tutorial completed",
+    "touch tutorial completed with simulated pointers",
+    "combat and classic keyboard controls",
+    "pause and resume",
+    "800x450 menu / practice / hangar",
+    "no console errors or warnings observed"
+  ],
+  "limits": [
+    "physical phone multitouch untested",
+    "no long-duration performance benchmark",
+    "not submitted to CrazyGames"
+  ],
+  "assets": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "sha256": "B9920008AB65A242A1FEDFAE5C15D87CA1E6F9B129932951CECC64A86891131D"
+    },
+    {
+      "file": "favicon.svg",
+      "status": 200,
+      "sha256": "B456DFF71962CC645773B7AE4E604414890FE06E8D7B780059CCC44000D73F22"
+    },
+    {
+      "file": "THIRD-PARTY-NOTICES.txt",
+      "status": 200,
+      "sha256": "E06F5DBC282D23B372454505555BBD97E64042DDBE482327AFA105291A9C19C9"
+    },
+    {
+      "file": "assets/135136-loop-COQk3o_7.mp3",
+      "status": 200,
+      "sha256": "1841C8164C5E8671F22612B35B31E92E2954152A78262AB018CBADD5F9FF90E4"
+    },
+    {
+      "file": "assets/AimWorker-DszWzWc1.js",
+      "status": 200,
+      "sha256": "07508D376FC4CE099423B026E13DBEA7E5334439797BAA0241081AF71131D163"
+    },
+    {
+      "file": "assets/index-CWT-V7ny.css",
+      "status": 200,
+      "sha256": "F69B22A171A65CBC92924B06CB1511F966D1373126CDC0D7BF6E3DACA4E39D2B"
+    },
+    {
+      "file": "assets/index-DGH-_Svz.js",
+      "status": 200,
+      "sha256": "53953992D2A93DC3BF100ACA1EEBAC1A73D5094219DA7A6B91387FE17CABBA72"
+    },
+    {
+      "file": "assets/phaser-DFK5Ua9d.js",
+      "status": 200,
+      "sha256": "F9025C1A29BC3AE097DD886CE07717B297466DA1CE8F032C8294252CE6CF5CDB"
+    }
+  ]
+}
