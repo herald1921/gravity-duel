@@ -6,6 +6,8 @@ import { angleDifference, type Ship, type ShipControl } from '../entities/Ship.j
 import { segmentCircleContact, simulateTrajectory, type CollisionTarget, type SpaceContext, type Trajectory, type Vec2 } from '../physics/gravity.js';
 import { traceLaser } from '../physics/laser.js';
 import type { AimPlanner } from './TrajectoryPlanner.js';
+import type { Difficulty } from './Difficulty.js';
+import type { Bullet } from '../entities/Bullet.js';
 export interface AimSolution { angle: number; distance: number; trajectory: Trajectory }
 export function findAimSolution(self: Launcher & CollisionTarget, target: CollisionTarget,
   bodies: readonly CelestialBody[], context: SpaceContext = {}, weapon: SpecialShot | 'normal' = 'normal'): AimSolution {
@@ -37,13 +39,14 @@ export class SpaceAI {
   private phaseTime = AI_AIM_SECONDS; private moving = false; private side = 1;
   private plannedWeapon: SpecialShot | 'normal' = 'normal';
   private pending = false; private revision = 0;
-  constructor(private readonly random: () => number = Math.random, private readonly planner?: AimPlanner) {}
+  constructor(private readonly random: () => number = Math.random, private readonly planner?: AimPlanner, readonly difficulty?: Difficulty) {}
   reset(): void {
     this.revision++; this.pending = false;
     this.solution = null; this.targetPoint = null; this.decisionIn = 0; this.planAge = 0;
     this.phaseTime = AI_AIM_SECONDS; this.moving = false; this.side = this.random() > 0.5 ? 1 : -1;
   }
-  update(dt: number, self: Ship, target: Ship, bodies: readonly CelestialBody[], context: SpaceContext = {}, pickups: readonly Pickup[] = []): ShipControl {
+  update(dt: number, self: Ship, target: Ship, bodies: readonly CelestialBody[], context: SpaceContext = {}, pickups: readonly Pickup[] = [], bullets: readonly Bullet[] = [], allies: readonly Ship[] = []): ShipControl {
+    if (!self.alive || !target.alive) return { turn: 0, thrust: 0, fire: false };
     this.decisionIn -= dt; this.phaseTime -= dt; this.planAge += dt;
     const weapon = self.specialShot ?? 'normal';
     if (weapon !== this.plannedWeapon) { this.decisionIn = 0; this.solution = null; }
@@ -52,33 +55,38 @@ export class SpaceAI {
       if (this.moving) this.side = this.random() > 0.5 ? 1 : -1;
     }
     if (this.decisionIn <= 0 && !self.laserCharge && !this.pending) {
-      this.pending = true; this.plannedWeapon = weapon; this.decisionIn = AI_REACTION_TIME;
-      const revision = ++this.revision, targetPoint = { x: target.x, y: target.y };
+      this.pending = true; this.plannedWeapon = weapon; this.decisionIn = this.difficulty?.reaction ?? AI_REACTION_TIME;
+      const lead = weapon === 'laser' ? 0 : (this.difficulty?.lead ?? 0) * Math.min(1.3, Math.hypot(target.x - self.x, target.y - self.y) / 360);
+      const revision = ++this.revision, targetPoint = {
+        x: Math.max(45, Math.min(1235, target.x + target.vx * lead)), y: Math.max(125, Math.min(650, target.y + target.vy * lead)) };
+      const predicted = { id: target.id, ...targetPoint, radius: target.radius };
       const accept = (solution: AimSolution | null) => {
         if (revision !== this.revision) return;
         this.pending = false;
         if (!solution || !self.alive || (self.specialShot ?? 'normal') !== weapon) { this.decisionIn = 0; return; }
         this.solution = solution; this.targetPoint = targetPoint;
-        this.goalAngle = solution.angle + (this.random() * 2 - 1) * AI_AIM_ERROR_DEGREES * Math.PI / 180;
+        this.goalAngle = solution.angle + (this.random() * 2 - 1) * (this.difficulty?.aimError ?? AI_AIM_ERROR_DEGREES) * Math.PI / 180;
         this.planAge = 0;
       };
       if (this.planner) this.planner({ self: { id: self.id, x: self.x, y: self.y, radius: self.radius, angle: self.angle, vx: self.vx, vy: self.vy },
-        target: { id: target.id, x: target.x, y: target.y, radius: target.radius }, bodies, context, weapon }, accept);
-      else accept(findAimSolution(self, target, bodies, context, weapon));
+        target: predicted, bodies, context, weapon }, accept);
+      else accept(findAimSolution(self, predicted, bodies, context, weapon));
     }
     const current = bodies.map(body => bodyAt(body, (context.time ?? 0) + 0.5));
-    const navigation = this.navigation(self, target, current, pickups, context.time ?? 0);
+    const navigation = this.navigation(self, target, current, pickups, context.time ?? 0, bullets, allies);
     const moving = !self.laserCharge && (this.moving || navigation.urgent);
-    const error = angleDifference(moving ? navigation.angle : this.goalAngle, self.angle);
+    const independent = this.difficulty?.independentAim === true;
+    const error = angleDifference(moving && !independent ? navigation.angle : this.goalAngle, self.angle);
     const speed = Math.hypot(self.vx, self.vy);
     const turn = Math.max(-1, Math.min(1, error * 3));
     const thrust = moving ? Math.abs(error) < 0.65 ? 1 : speed > 25 ? -1 : 0 : speed > 35 ? -1 : 0;
-    let fire = !moving && this.planAge >= AI_FIRE_DELAY && Math.abs(error) < 0.055 && (this.solution?.distance ?? Infinity) < (weapon === 'orbital' ? 115 : 75);
+    let fire = (!moving || independent) && this.planAge >= (this.difficulty?.fireDelay ?? AI_FIRE_DELAY) && Math.abs(error) < 0.055 && (this.solution?.distance ?? Infinity) < (weapon === 'orbital' ? 115 : 75);
     if (weapon === 'laser') fire = fire && traceLaser(self, bodies, [target], context.time ?? 0).event?.type === 'ship';
-    if (fire && self.cooldown <= 1e-9) this.phaseTime = Math.min(this.phaseTime, 0.45);
-    return { turn, thrust, fire };
+    if (fire && self.cooldown <= 1e-9 && !this.difficulty) this.phaseTime = Math.min(this.phaseTime, 0.45);
+    return independent ? { turn: 0, thrust: 0, fire, independentAim: true, aim: this.goalAngle,
+      move: moving ? { x: Math.cos(navigation.angle), y: Math.sin(navigation.angle) } : { x: 0, y: 0 } } : { turn, thrust, fire };
   }
-  private navigation(self: Ship, target: Ship, bodies: readonly CelestialBody[], pickups: readonly Pickup[], time: number): { angle: number; urgent: boolean } {
+  private navigation(self: Ship, target: Ship, bodies: readonly CelestialBody[], pickups: readonly Pickup[], time: number, bullets: readonly Bullet[], allies: readonly Ship[]): { angle: number; urgent: boolean } {
     const dx = target.x - self.x, dy = target.y - self.y, distance = Math.max(1, Math.hypot(dx, dy));
     const radial = Math.max(-1, Math.min(1, (distance - AI_PREFERRED_DISTANCE) / 180));
     let x = dx / distance * radial - dy / distance * this.side * 0.7, y = dy / distance * radial + dx / distance * this.side * 0.7;
@@ -87,7 +95,22 @@ export class SpaceAI {
       segmentCircleContact(self, p, { x: body.x, y: body.y, radius: body.collisionRadius + self.radius + 30 }) !== null ||
       inPulsarBeam(p, { ...body, motion: undefined }, time)))
       .sort((a, b) => Math.hypot(a.x - self.x, a.y - self.y) - Math.hypot(b.x - self.x, b.y - self.y))[0];
-    if (nearby && this.moving) { const d = Math.max(1, Math.hypot(nearby.x - self.x, nearby.y - self.y)); x = (nearby.x - self.x) / d * 2; y = (nearby.y - self.y) / d * 2; }
+    if (nearby && this.moving && (this.difficulty?.seekPickups ?? true)) { const d = Math.max(1, Math.hypot(nearby.x - self.x, nearby.y - self.y)); x = (nearby.x - self.x) / d * 2; y = (nearby.y - self.y) / d * 2; }
+    if (this.difficulty?.dodge) {
+      for (const bullet of bullets) {
+        if (bullet.ownerId !== 1) continue;
+        const rx = bullet.x - self.x, ry = bullet.y - self.y, vx = bullet.vx - self.vx, vy = bullet.vy - self.vy;
+        const closest = Math.max(0, Math.min(0.65, -(rx * vx + ry * vy) / Math.max(1, vx * vx + vy * vy)));
+        if (closest <= 0 || Math.hypot(rx + vx * closest, ry + vy * closest) > 65) continue;
+        const speed = Math.max(1, Math.hypot(vx, vy)), side = rx * vy - ry * vx >= 0 ? 1 : -1;
+        x += vy / speed * side * 4; y -= vx / speed * side * 4; urgent = true;
+      }
+      for (const ally of allies) {
+        if (ally.id === self.id || !ally.alive) continue;
+        const ax = self.x - ally.x, ay = self.y - ally.y, d = Math.max(1, Math.hypot(ax, ay));
+        if (d < 190) { x += ax / d * 2; y += ay / d * 2; }
+      }
+    }
     for (const body of bodies) {
       const bx = self.x + self.vx * 0.6 - body.x, by = self.y + self.vy * 0.6 - body.y, d = Math.max(1, Math.hypot(bx, by));
       const safe = body.collisionRadius + self.radius + (body.lethal ? 150 : 90);

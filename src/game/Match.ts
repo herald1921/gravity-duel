@@ -21,28 +21,33 @@ export type MatchEvent =
   | { type: 'laser'; owner: PlayerId; position: Vec2 }
   | { type: 'respawn' };
 export class Match {
-  readonly ships: [Ship, Ship];
-  readonly scores: Record<PlayerId, number> = { 1: 0, 2: 0 };
-  readonly deathCounts: Record<PlayerId, number> = { 1: 0, 2: 0 };
-  readonly scoringHighlights: Record<PlayerId, Set<Highlight>> = { 1: new Set(), 2: new Set() };
+  readonly ships: Ship[];
+  readonly scores: Record<1 | 2, number> = { 1: 0, 2: 0 };
+  readonly deathCounts: Record<PlayerId, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  readonly scoringHighlights: Record<PlayerId, Set<Highlight>> = { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() };
   bullets: Bullet[] = []; pickups: Pickup[] = [];
   laserBeams: (LaserTrace & { age: number; owner: PlayerId })[] = [];
   phase: MatchPhase = 'ready'; phaseTime = C.ROUND_START_TIME; time = 0;
   winner: PlayerId | null = null; lastDeath: Death | null = null; draw = false;
   private pickupIn: number; private pickupSequence = 0; private spawnCursor = 0;
   private events: MatchEvent[] = [];
+  private roundHighlights = new Set<Highlight>();
   constructor(readonly map: GameMap, readonly targetScore = C.FIRST_TO_SCORE) {
     this.ships = [new Ship(1, map.player1Spawn), new Ship(2, map.player2Spawn)];
+    for (const [i, spawn] of (map.extraEnemySpawns ?? []).slice(0, 2).entries()) this.ships.push(new Ship((i + 3) as PlayerId, spawn));
     this.pickupIn = map.pickupStart ?? 6;
   }
   rematch(): void {
+    for (const ship of this.ships) { this.deathCounts[ship.id] = 0; this.scoringHighlights[ship.id].clear(); }
     this.deathCounts[1] = 0; this.deathCounts[2] = 0; this.scoringHighlights[1].clear(); this.scoringHighlights[2].clear();
     this.scores[1] = 0; this.scores[2] = 0; this.winner = null; this.time = 0;
     this.pickups = []; this.pickupIn = this.map.pickupStart ?? 6; this.pickupSequence = 0; this.spawnCursor = 0;
     this.events = []; this.respawn();
   }
   private respawn(): void {
+    this.roundHighlights.clear();
     this.ships[0].reset(this.map.player1Spawn); this.ships[1].reset(this.map.player2Spawn);
+    this.ships.slice(2).forEach((ship, i) => ship.reset(this.map.extraEnemySpawns![i]));
     this.bullets = []; this.laserBeams = []; this.phase = 'ready'; this.phaseTime = C.ROUND_START_TIME;
     this.lastDeath = null; this.draw = false; this.events.push({ type: 'respawn' });
   }
@@ -72,7 +77,7 @@ export class Match {
     return true;
   }
   private attack(victim: PlayerId, owner: PlayerId, deaths: Map<PlayerId, Death>, bullet?: Bullet): void {
-    if (deaths.has(victim)) return;
+    if (deaths.has(victim) || !this.ships[victim - 1].alive) return;
     const ship = this.ships[victim - 1];
     if (blockAttack(ship)) {
       this.events.push({ type: 'mechanic', sound: 'shieldBreak', position: { x: ship.x, y: ship.y } });
@@ -84,7 +89,7 @@ export class Match {
       const p = bodyPosition(body, time);
       return Math.hypot(point.x - p.x, point.y - p.y) < body.collisionRadius + C.SHIP_RADIUS + C.POWERUP_RADIUS + 16 ||
         inPulsarBeam({ ...point, radius: C.POWERUP_RADIUS }, body, time);
-    }) && ![this.map.player1Spawn, this.map.player2Spawn].some(spawn => Math.hypot(spawn.x - point.x, spawn.y - point.y) < 140);
+    }) && ![this.map.player1Spawn, this.map.player2Spawn, ...this.map.extraEnemySpawns ?? []].some(spawn => Math.hypot(spawn.x - point.x, spawn.y - point.y) < 140);
   }
   private updatePickups(deaths: Map<PlayerId, Death>): void {
     for (const pickup of this.pickups) pickup.age += C.PHYSICS_DT;
@@ -116,7 +121,7 @@ export class Match {
       return false;
     });
   }
-  step(controls: readonly [ShipControl, ShipControl]): void {
+  step(controls: readonly ShipControl[]): void {
     if (this.phase === 'matchOver') return;
     if (this.phase !== 'playing') {
       this.phaseTime = Math.max(0, this.phaseTime - C.PHYSICS_DT);
@@ -126,11 +131,11 @@ export class Match {
     const previous = this.ships.map(ship => ({ x: ship.x, y: ship.y }));
     const deaths = new Map<PlayerId, Death>();
     for (const ship of this.ships) {
-      const hazard = ship.update(C.PHYSICS_DT, controls[ship.id - 1], this.map.bodies, this.time);
+      const hazard = ship.update(C.PHYSICS_DT, controls[ship.id - 1] ?? IDLE_CONTROL, this.map.bodies, this.time, this.map.shipGravity);
       if (hazard) deaths.set(ship.id, { victim: ship.id, cause: 'hazard' });
     }
     for (const ship of this.ships) {
-      if (deaths.has(ship.id) || ship.portalCooldown > 1e-9) continue;
+      if (!ship.alive || deaths.has(ship.id) || ship.portalCooldown > 1e-9) continue;
       const gates = this.map.wormholes ?? [], start = previous[ship.id - 1];
       const entry = gates.map(gate => ({ gate, t: segmentCircleContact(start, ship, gate, ship.radius) }))
         .filter(contact => contact.t !== null && gates.some(exit => exit.id === contact.gate.exitId))
@@ -139,12 +144,12 @@ export class Match {
       teleportShip(ship, entry, gates.find(gate => gate.id === entry.exitId)!);
       // The portal gap is not a movement/collision segment.
       previous[ship.id - 1] = { x: ship.x, y: ship.y };
-      const hazard = ship.update(0, IDLE_CONTROL, this.map.bodies, this.time + C.PHYSICS_DT);
+      const hazard = ship.update(0, IDLE_CONTROL, this.map.bodies, this.time + C.PHYSICS_DT, this.map.shipGravity);
       if (hazard) deaths.set(ship.id, { victim: ship.id, cause: 'hazard' });
       this.events.push({ type: 'mechanic', sound: 'teleport', position: { x: ship.x, y: ship.y }, owner: ship.id });
     }
     this.updatePickups(deaths);
-    for (const ship of this.ships) if (!deaths.has(ship.id) && controls[ship.id - 1].fire) this.fire(ship.id);
+    for (const ship of this.ships) if (!deaths.has(ship.id) && controls[ship.id - 1]?.fire) this.fire(ship.id);
     const targets = this.ships.map((ship, i) => ({ id: ship.id, x: ship.x, y: ship.y, radius: ship.radius, alive: ship.alive, previous: previous[i] }));
     for (const beam of this.laserBeams) beam.age += C.PHYSICS_DT;
     this.laserBeams = this.laserBeams.filter(beam => beam.age < 0.18);
@@ -152,7 +157,7 @@ export class Match {
       if (!ship.laserCharge || deaths.has(ship.id)) continue;
       ship.laserCharge.remaining -= C.PHYSICS_DT;
       if (ship.laserCharge.remaining > 1e-9) continue;
-      const beam = traceLaser(ship, this.map.bodies, targets, this.time + C.PHYSICS_DT, ship.laserCharge.angle);
+      const beam = traceLaser(ship, this.map.bodies, targets.filter(t => this.canHit(ship.id, t.id)), this.time + C.PHYSICS_DT, ship.laserCharge.angle);
       ship.laserCharge = null; this.laserBeams.push({ ...beam, age: 0, owner: ship.id });
       this.events.push({ type: 'laser', owner: ship.id, position: beam.end });
       if (beam.event?.type === 'ship') this.attack(beam.event.shipId, ship.id, deaths);
@@ -162,7 +167,7 @@ export class Match {
       bullet.trail.push({ x: bullet.x, y: bullet.y });
       const trailLimit = bullet.orbitState ? 72 : bullet.kind === 'homing' ? 96 : 24;
       if (bullet.trail.length > trailLimit) bullet.trail.shift();
-      const event = stepProjectile(bullet, this.map.bodies, targets, { time: this.time, wormholes: this.map.wormholes });
+      const event = stepProjectile(bullet, this.map.bodies, targets.filter(t => this.canHit(bullet.ownerId, t.id)), { time: this.time, wormholes: this.map.wormholes });
       if (bullet.teleport) { bullet.trail = []; this.events.push({ type: 'mechanic', sound: 'teleport', position: bullet.teleport.to }); }
       if (bullet.justCaptured) this.events.push({ type: 'mechanic', sound: 'orbitLock', position: { x: bullet.x, y: bullet.y } });
       if (!event) { survivors.push(bullet); continue; }
@@ -176,18 +181,24 @@ export class Match {
     this.bullets = survivors; this.time += C.PHYSICS_DT;
     if (deaths.size) this.resolveDeaths([...deaths.values()]);
   }
+  private canHit(owner: PlayerId, target: PlayerId): boolean { return owner === 1 || target === 1 || owner === target; }
   private resolveDeaths(deaths: Death[]): void {
-    this.draw = deaths.length === 2;
     for (const death of deaths) {
       this.deathCounts[death.victim]++;
-      const ship = this.ships[death.victim - 1]; ship.alive = false;
+      const ship = this.ships[death.victim - 1]; ship.alive = false; ship.laserCharge = null; ship.thrusting = false;
       this.events.push({ type: 'death', victim: death.victim, position: { x: ship.x, y: ship.y }, highlight: death.highlight });
+      if (this.ships.length > 2 && death.victim > 1 && death.cause === 'shot' && death.highlight) this.roundHighlights.add(death.highlight);
     }
-    this.lastDeath = deaths[0]; this.bullets = [];
+    const playerDead = !this.ships[0].alive, enemiesDead = this.ships.slice(1).every(ship => !ship.alive);
+    if (this.ships.length > 2 && !playerDead && !enemiesDead) return;
+    this.draw = this.ships.length === 2 ? deaths.length === 2 : playerDead && enemiesDead;
+    this.lastDeath = deaths.find(d => d.victim === 1) ?? deaths[0]; this.bullets = [];
     for (const ship of this.ships) { ship.thrusting = false; ship.laserCharge = null; }
     if (!this.draw) {
-      const scorer = otherPlayer(deaths[0].victim); this.scores[scorer]++;
-      if (deaths[0].cause === 'shot' && deaths[0].highlight) this.scoringHighlights[scorer].add(deaths[0].highlight);
+      const scorer = this.ships.length === 2 ? otherPlayer(deaths[0].victim) : playerDead ? 2 : 1; this.scores[scorer]++;
+      const scoredDeath = deaths.find(death => otherPlayer(death.victim) === scorer);
+      if (scoredDeath?.cause === 'shot' && scoredDeath.highlight) this.scoringHighlights[scorer].add(scoredDeath.highlight);
+      if (scorer === 1) for (const highlight of this.roundHighlights) this.scoringHighlights[1].add(highlight);
       if (this.scores[scorer] >= this.targetScore) this.winner = scorer;
     }
     this.phase = this.winner ? 'matchOver' : 'roundOver'; this.phaseTime = C.RESPAWN_DELAY;

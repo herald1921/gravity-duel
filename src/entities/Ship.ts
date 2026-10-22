@@ -2,15 +2,16 @@ import * as C from '../config.js';
 import { getShipAcceleration, segmentCircleContact, type Vec2 } from '../physics/gravity.js';
 import { bodyPosition, bodyVelocity, inPulsarBeam, type CelestialBody } from './CelestialBody.js';
 import type { SpecialShot } from './PowerUp.js';
-export type PlayerId = 1 | 2;
+export type PlayerId = 1 | 2 | 3 | 4;
 export interface ShipControl { turn: number; thrust: number; fire: boolean; move?: Vec2; aim?: number; independentAim?: boolean }
 export const IDLE_CONTROL: ShipControl = { turn: 0, thrust: 0, fire: false };
 export interface Spawn extends Vec2 { angle: number }
-export const otherPlayer = (id: PlayerId): PlayerId => id === 1 ? 2 : 1;
+export const otherPlayer = (id: PlayerId): 1 | 2 => id === 1 ? 2 : 1;
 export const angleDifference = (target: number, current: number): number => Math.atan2(Math.sin(target - current), Math.cos(target - current));
 export class Ship {
   x = 0; y = 0; vx = 0; vy = 0; angle = 0; hullAngle = 0; cooldown = 0;
   portalCooldown = 0;
+  aimAssistFor = 0;
   alive = true; thrusting = false; shield = false; specialShot: SpecialShot | null = null; jammedFor = 0;
   laserCharge: { remaining: number; angle: number } | null = null;
   readonly radius = C.SHIP_RADIUS;
@@ -18,10 +19,11 @@ export class Ship {
   reset(spawn: Spawn): void {
     this.x = spawn.x; this.y = spawn.y; this.angle = spawn.angle; this.hullAngle = spawn.angle; this.vx = 0; this.vy = 0;
     this.cooldown = 0; this.portalCooldown = 0; this.alive = true; this.thrusting = false; this.shield = false;
-    this.specialShot = null; this.jammedFor = 0; this.laserCharge = null;
+    this.specialShot = null; this.jammedFor = 0; this.laserCharge = null; this.aimAssistFor = 0;
   }
-  update(dt: number, control: ShipControl, bodies: readonly CelestialBody[], time = 0): string | null {
+  update(dt: number, control: ShipControl, bodies: readonly CelestialBody[], time = 0, gravity: 'none' | 'all' | 'blackHoles' = 'blackHoles'): string | null {
     if (!this.alive) return null;
+    this.aimAssistFor = Math.max(0, this.aimAssistFor - dt);
     this.cooldown = Math.max(0, this.cooldown - dt); this.portalCooldown = Math.max(0, this.portalCooldown - dt);
     this.jammedFor = bodies.some(body => inPulsarBeam(this, body, time)) ? C.PULSAR_RECOVERY_TIME : Math.max(0, this.jammedFor - dt);
     const jam = this.jammedFor > 0;
@@ -45,7 +47,7 @@ export class Ship {
     const braking = !moving && throttle < 0 && Math.hypot(this.vx, this.vy) > 30;
     const thrust = (throttle > 0 ? C.SHIP_THRUST * throttle : throttle < 0 && !braking ? C.SHIP_REVERSE_THRUST * throttle : 0) * (jam ? C.PULSAR_THRUST_MULTIPLIER : 1);
     const drag = Math.exp(-(braking ? C.SHIP_DRAG + (C.SHIP_BRAKE_DRAG - C.SHIP_DRAG) * -throttle : control.independentAim && !moving ? 3.2 : C.SHIP_DRAG) * dt);
-    const force = getShipAcceleration(this, bodies, time);
+    const force = getShipAcceleration(this, bodies, time, gravity);
     this.vx = (this.vx + ((moving ? move!.x / moveLength : Math.cos(this.angle)) * thrust + force.x) * dt) * drag;
     this.vy = (this.vy + ((moving ? move!.y / moveLength : Math.sin(this.angle)) * thrust + force.y) * dt) * drag;
     const speed = Math.hypot(this.vx, this.vy);

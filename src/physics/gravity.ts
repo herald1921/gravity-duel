@@ -35,8 +35,9 @@ export function getGravityAcceleration(position: Vec2, bodies: readonly Celestia
   if (length > C.MAX_GRAVITY_ACCELERATION) { x *= C.MAX_GRAVITY_ACCELERATION / length; y *= C.MAX_GRAVITY_ACCELERATION / length; }
   return { x, y };
 }
-export function getShipAcceleration(position: Vec2, bodies: readonly CelestialBody[], time = 0): Vec2 {
-  const a = getGravityAcceleration(position, bodies.filter(body => body.type === 'blackHole'), time);
+export function getShipAcceleration(position: Vec2, bodies: readonly CelestialBody[], time = 0, mode: 'none' | 'all' | 'blackHoles' = 'blackHoles'): Vec2 {
+  if (mode === 'none') return { x: 0, y: 0 };
+  const a = getGravityAcceleration(position, mode === 'all' ? bodies : bodies.filter(body => body.type === 'blackHole'), time);
   const length = Math.hypot(a.x, a.y);
   const scale = Math.min(C.BLACK_HOLE_SHIP_GRAVITY_MULTIPLIER, C.MAX_SHIP_GRAVITY_ACCELERATION / Math.max(1, length));
   return { x: a.x * scale, y: a.y * scale };

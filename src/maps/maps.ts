@@ -1,4 +1,5 @@
 import { MOVING_MOON_ORBIT_PERIOD } from '../config.js';
+import { CAMPAIGN_MAPS } from './campaign.js';
 import { createBody, type CelestialBody } from '../entities/CelestialBody.js';
 import type { Spawn } from '../entities/Ship.js';
 import { portalPair, type Wormhole } from '../entities/Wormhole.js';
@@ -9,6 +10,9 @@ export interface GameMap {
   player1Spawn: Spawn; player2Spawn: Spawn; bodies: readonly CelestialBody[];
   wormholes?: readonly Wormhole[]; powerUpSpawnPoints?: readonly Vec2[];
   powerUps?: readonly PowerUpType[]; pickupStart?: number;
+  shipGravity?: 'none' | 'all' | 'blackHoles';
+  extraEnemySpawns?: readonly Spawn[];
+  campaignIndex?: number; lesson?: PowerUpType;
 }
 const contest = [{ x: 610, y: 175 }, { x: 640, y: 600 }, { x: 380, y: 400 }, { x: 870, y: 400 }];
 const spawns = { player1Spawn: { x: 210, y: 570, angle: -0.5 }, player2Spawn: { x: 1070, y: 190, angle: 2.65 } };
@@ -58,4 +62,4 @@ export const MAPS: readonly GameMap[] = [
     wormholes: portalPair([425, 255, -0.25], [825, 530, -2.1]),
     powerUpSpawnPoints: [{ x: 475, y: 500 }, { x: 820, y: 230 }], powerUps: ['homing', 'shield', 'orbital', 'laser', 'heavy'] },
 ];
-export function getMap(id: string): GameMap { return MAPS.find(map => map.id === id) ?? MAPS[0]; }
+export function getMap(id: string): GameMap { return [...CAMPAIGN_MAPS, ...MAPS].find(map => map.id === id) ?? MAPS[0]; }

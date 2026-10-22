@@ -105,6 +105,5 @@ export class TutorialScene extends Phaser.Scene {
    g.lineStyle(2,0xffcf83,.7).strokeCircle(x,y,18);this.hint.setPosition(x,y-31).setText(this.modern&&!device.touch?'AIM HERE':'TRY THIS ANGLE');}
   drawShip(g,this.ship,this.seconds,profile.paintColor);
   for(const b of this.bullets){b.trail.forEach((p,i)=>{if(i%3===0)g.fillStyle(0x69f4df,i/b.trail.length*.6).fillCircle(p.x,p.y,2.5);});g.fillStyle(0x69f4df,.2).fillCircle(b.x,b.y,11).fillStyle(0xf0ffff).fillCircle(b.x,b.y,4);}
-  if(this.mouse&&this.stage>0&&this.stage<3)g.lineStyle(1.5,0xcafff1,.8).strokeCircle(this.mouse.x,this.mouse.y,8);
  }
 }

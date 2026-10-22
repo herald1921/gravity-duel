@@ -40,7 +40,7 @@ test('captured orbit crosses the old deletion boundary and returns intact, while
  const free=shot('normal',{x:1450,y:300});assert.equal(stepProjectile(free,[]).type,'bounds');
 });
 test('orbit still expires outside the camera rather than persisting forever',()=>{
- const body=createBody('edge','planet',1390,350),b=shot('orbital',{x:1540,y:350,vx:0,vy:-300,age:24-C.PHYSICS_DT});
+ const body=createBody('edge','planet',1390,350),b=shot('orbital',{x:1540,y:350,vx:0,vy:-300,age:C.ORBITAL_BULLET_LIFETIME-C.PHYSICS_DT});
  captureOrbit(b,body,0);assert.equal(stepProjectile(b,[body]).type,'expired');
 });
 test('other-body orbital collision emits its cause and leaves the round playing',()=>{
@@ -52,7 +52,7 @@ test('other-body orbital collision emits its cause and leaves the round playing'
  const event=m.drainEvents().find(e=>e.type==='orbitalEnd');assert.equal(event.reason,'collision');assert.equal(event.bodyId,'other');
 });
 test('expiration and successful replacement have different notices; rejected shots do not remove old rounds',()=>{
- const m=new Match({...MAPS[0],bodies:[]});m.phase='playing';m.bullets=[{...shot('orbital',{x:600,y:300,age:24-C.PHYSICS_DT}),trail:[]}];
+ const m=new Match({...MAPS[0],bodies:[]});m.phase='playing';m.bullets=[{...shot('orbital',{x:600,y:300,age:C.ORBITAL_BULLET_LIFETIME-C.PHYSICS_DT}),trail:[]}];
  m.step([IDLE_CONTROL,IDLE_CONTROL]);assert.equal(m.drainEvents().find(e=>e.type==='orbitalEnd').reason,'expired');
  m.ships[0].specialShot='orbital';assert.ok(m.fire(1));m.drainEvents();const old=m.bullets[0];
  m.ships[0].specialShot='orbital';assert.equal(m.fire(1),false);assert.equal(m.bullets[0],old);assert.deepEqual(m.drainEvents(),[]);
@@ -64,6 +64,6 @@ test('edge indicators stay inside the arena and expiry blinking is restricted to
   const edge=projectileIndicator(point);assert.ok(edge.x>=44&&edge.x<=1236&&edge.y>=124&&edge.y<=650);
   assert.ok(Math.cos(edge.angle)*(point.x-edge.x)+Math.sin(edge.angle)*(point.y-edge.y)>0);
  }
- assert.equal(orbitalAlpha(20),1);assert.notEqual(orbitalAlpha(22),orbitalAlpha(22.0625));
- assert.ok(orbitalAlpha(23.9)>=0.45);
+ assert.equal(orbitalAlpha(C.ORBITAL_BULLET_LIFETIME-4),1);assert.notEqual(orbitalAlpha(C.ORBITAL_BULLET_LIFETIME-2),orbitalAlpha(C.ORBITAL_BULLET_LIFETIME-1.9375));
+ assert.ok(orbitalAlpha(C.ORBITAL_BULLET_LIFETIME-0.1)>=0.45);
 });

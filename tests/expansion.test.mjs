@@ -180,9 +180,10 @@ test('event horizon swallows a locked projectile without taking over its orbit',
   const hole = createBody('hole', 'blackHole', state.x, state.y);
   assert.deepEqual(stepProjectile(state, [planet, hole]), { type: 'body', bodyId: 'hole' });
 });
-test('orbital lifetime expires at 24 seconds even in a perfectly stable orbit', () => {
+test('orbital lifetime expires at 48 seconds even in a perfectly stable orbit', () => {
   const state = shot({ x: 785, y: 375, age: 0, kind: 'orbital' }); captureOrbit(state, planet, 0);
-  for (let i = 0; i < 2879; i++) assert.equal(stepProjectile(state, [planet]), null);
+  assert.equal(C.ORBITAL_BULLET_LIFETIME, 48);
+  for (let i = 0; i < C.ORBITAL_BULLET_LIFETIME / C.PHYSICS_DT - 1; i++) assert.equal(stepProjectile(state, [planet]), null);
   assert.equal(stepProjectile(state, [planet]).type, 'expired'); close(state.age, C.ORBITAL_BULLET_LIFETIME);
 });
 test('per-player orbital cap replaces the old shot without affecting the other player or cannon rounds', () => {
@@ -228,10 +229,10 @@ test('pickup cadence/cap and round cleanup remain bounded; orbital lab introduce
   assert.equal(match.time, 0); assert.equal(match.pickups.length, 0); assert.equal(match.bullets.length, 0);
   assert.ok(match.ships.every(s => !s.shield && !s.specialShot && !s.laserCharge));
 });
-test('arcade progression visits all nine arenas once and stops at completion', () => {
+test('arcade progression visits all 27 campaign arenas once and stops at completion', () => {
   let i = 0, visited = [ARCADE[0].mapId];
   while (nextArena(i) !== null) { i = nextArena(i); visited.push(ARCADE[i].mapId); }
-  assert.deepEqual(visited, MAPS.map(m => m.id)); assert.equal(nextArena(8), null);
+  assert.equal(visited.length, 27); assert.equal(new Set(visited).size, 27); assert.equal(nextArena(26), null);
 });
 test('simultaneous touch pointers remain independent and cancellation clears all actions', () => {
   const touch = new TouchState(); touch.press(1, 'left'); touch.press(2, 'thrust'); touch.press(3, 'fire');

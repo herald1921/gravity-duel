@@ -3,7 +3,7 @@ import { WORLD } from '../config.js';
 import type { CelestialBody } from '../entities/CelestialBody.js';
 import type { PlayerId, Ship } from '../entities/Ship.js';
 import type { Vec2 } from '../physics/gravity.js';
-export const COLORS = { 1: 0x69f4df, 2: 0xff8c79, white: 0xf0f6ff, muted: 0xa8bed3, gold: 0xffd080 };
+export const COLORS = { 1: 0x69f4df, 2: 0xff8c79, 3: 0xffbb70, 4: 0xef8fbf, white: 0xf0f6ff, muted: 0xa8bed3, gold: 0xffd080 };
 export const MONO = 'Arial, Helvetica, sans-serif';
 export const playerColor = (id: PlayerId): number => COLORS[id];
 export function label(scene: Phaser.Scene, x: number, y: number, value: string, size = 22, color = '#e7f1fa'): Phaser.GameObjects.Text {

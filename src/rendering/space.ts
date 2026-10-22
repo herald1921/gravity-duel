@@ -39,7 +39,9 @@ export function drawPickup(g: Phaser.GameObjects.Graphics, pickup: Pickup, time:
   g.fillStyle(c, 0.08).fillCircle(0, 0, 27);
   g.fillStyle(0x101e2b, 0.95).lineStyle(2, c, 0.9);
   g.beginPath().moveTo(0, -21).lineTo(21, 0).lineTo(0, 21).lineTo(-21, 0).closePath().fillPath().strokePath();
-  if (pickup.type === 'shield') {
+  if (pickup.type === 'trajectory') {
+    for (let i = 0; i < 6; i++) g.fillStyle(c).fillCircle(-10 + i * 4, 7 - Math.sin(i / 5 * Math.PI / 2) * 16, 2);
+  } else if (pickup.type === 'shield') {
     g.lineStyle(2, c).beginPath().moveTo(-8, -8).lineTo(8, -8).lineTo(7, 3).lineTo(0, 11).lineTo(-7, 3).closePath().strokePath();
   } else if (pickup.type === 'laser') {
     g.lineStyle(3, c).lineBetween(-7, 10, 7, -10).lineBetween(-1, -2, 8, -10).lineBetween(-8, 10, 1, 2);

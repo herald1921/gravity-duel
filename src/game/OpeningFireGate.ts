@@ -4,9 +4,9 @@ export class OpeningFireGate {
   private elapsed = 0;
   readonly interval: number;
   readonly windup: number;
-  constructor(index: number | null) {
-    this.interval = index === 0 ? 3.2 : index === 1 ? 2.6 : 0;
-    this.windup = index === 0 ? 0.55 : index === 1 ? 0.35 : 0;
+  constructor(index: number | null, timing?: { interval: number; windup: number }) {
+    this.interval = timing?.interval ?? (index === 0 ? 3.2 : index === 1 ? 2.6 : 0);
+    this.windup = timing?.windup ?? (index === 0 ? 0.55 : index === 1 ? 0.35 : 0);
   }
   reset(): void { this.age = null; this.elapsed = 0; }
   get warning(): boolean { return this.age !== null; }

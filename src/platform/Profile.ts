@@ -1,6 +1,6 @@
 import { isBadge, PAINTS, type BadgeId, type PaintId } from '../game/Rewards.js';
 import { ARCADE } from '../game/Arcade.js';
-export const SAVE_KEY = 'gravity-duel-playtest-v090';
+export const SAVE_KEY = 'gravity-duel-campaign-v0100';
 export interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export interface ProfileData { version: 1; runIndex: number | null; cleared: number[]; tutorialDone: boolean; music: boolean; sfx: boolean; badges: BadgeId[]; paint: PaintId; controls: 'modern' | 'classic' }
 const fresh = (): ProfileData => ({ version: 1, runIndex: null, cleared: [], tutorialDone: false, music: true, sfx: true, badges: [], paint: 'teal', controls: 'modern' });
@@ -18,7 +18,8 @@ export class Profile {
   }
   private load(): void {
     try {
-      const raw = this.storage().getItem(SAVE_KEY);
+      const current = this.storage().getItem(SAVE_KEY);
+      const raw = current ?? this.storage().getItem('gravity-duel-playtest-v090');
       if (!raw) return;
       const saved: unknown = JSON.parse(raw);
       if (!saved || typeof saved !== 'object' || !('version' in saved) || saved.version !== 1) return;
@@ -28,6 +29,7 @@ export class Profile {
       this.data = { version: 1, runIndex: arenaIndex(s.runIndex) ? s.runIndex : null,
         cleared: Array.isArray(s.cleared) ? [...new Set(s.cleared.filter(arenaIndex))] : [],
         tutorialDone: s.tutorialDone === true, music: s.music !== false, sfx: s.sfx !== false, badges, paint, controls: s.controls === 'classic' ? 'classic' : 'modern' };
+      if (!current) { this.data.runIndex = null; this.data.cleared = []; }
     } catch { this.persistent = false; }
   }
   private save(): void {

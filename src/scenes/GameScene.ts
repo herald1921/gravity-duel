@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import * as C from '../config.js';
 import { SpaceAI } from '../ai/SpaceAI.js';
+import { difficultyFor } from '../ai/Difficulty.js';
 import { TrajectoryPlanner } from '../ai/TrajectoryPlanner.js';
 import { createProjectile } from '../entities/Bullet.js';
 import { bodyPosition } from '../entities/CelestialBody.js';
-import { POWERUP_COLORS, POWERUP_NAMES } from '../entities/PowerUp.js';
+import { POWERUP_COLORS, POWERUP_NAMES, POWERUP_HELP } from '../entities/PowerUp.js';
 import { IDLE_CONTROL, type ShipControl } from '../entities/Ship.js';
 import { ARCADE, nextArena } from '../game/Arcade.js';
 import { earnedBadges } from '../game/Rewards.js';
@@ -29,7 +30,7 @@ export class GameScene extends Phaser.Scene {
   private match!: Match; private ai!: SpaceAI; private planner?: TrajectoryPlanner; private clock = new FixedClock(); private keys!: Keys; private touch?: TouchControls;
   private debug = C.DEBUG; private visualTime = 0; private previewIn = 0; private pulseIn = 0; private acted = false; private transitioning = false;
   private generation = 0; private onboarding = false; private savedResult = false; private wasJammed = false;
-  private fireGate = new OpeningFireGate(null);
+  private ais: SpaceAI[] = []; private fireGates: OpeningFireGate[] = []; private volleyIn = 0;
   private pendingFire: [boolean, boolean] = [false, false];
   private mouseFire = false; private mouseAim?: {x:number; y:number}; private modern = false;
   private bodies!: Phaser.GameObjects.Graphics; private previews!: Phaser.GameObjects.Graphics;
@@ -49,10 +50,13 @@ export class GameScene extends Phaser.Scene {
     const map = getMap(this.mapId);
     const playable = device.touch && map.player1Spawn.x < 300 && map.player1Spawn.y > 480 ?
       { ...map, player1Spawn: { ...map.player1Spawn, x: 320, y: 460 } } : map;
-    this.match = new Match(playable, this.arcadeIndex === null ? C.FIRST_TO_SCORE : ARCADE[this.arcadeIndex].targetScore);
+    const levelIndex = this.arcadeIndex ?? map.campaignIndex;
+    this.match = new Match(this.mode === '2p' ? { ...playable, extraEnemySpawns: [] } : playable, levelIndex === undefined ? C.FIRST_TO_SCORE : ARCADE[levelIndex].targetScore);
     this.planner = this.mode === '1p' ? new TrajectoryPlanner() : undefined;
-    this.fireGate = new OpeningFireGate(this.mode === '1p' ? this.arcadeIndex : null);
-    this.ai = new SpaceAI(Math.random, this.planner?.request); this.ai.reset(); this.clock.reset();
+    const difficulty = map.campaignIndex === undefined ? undefined : difficultyFor(map.campaignIndex);
+    this.ais = this.match.ships.slice(1).map(() => new SpaceAI(Math.random, this.planner?.request, difficulty));
+    this.fireGates = this.ais.map(() => new OpeningFireGate(this.mode === '1p' ? this.arcadeIndex : null, difficulty));
+    this.ai = this.ais[0]; this.ais.forEach(ai => ai.reset()); this.volleyIn = 0; this.clock.reset();
     this.debug = C.DEBUG; this.visualTime = 0; this.previewIn = 0; this.pulseIn = 0; this.acted = false;
     pause.set('manual', false); platform.setGameplay(false);
     this.onboarding = !seenMechanics.has(this.mapId); seenMechanics.add(this.mapId);
@@ -68,7 +72,7 @@ export class GameScene extends Phaser.Scene {
       next: () => { void this.nextArena(); }, again: () => { void this.returnToGame(() => this.scene.restart({ mode: '1p', arcadeIndex: 0 })); },
     });
     this.shipLabels = this.match.ships.map(ship => label(this, ship.x, ship.y + 33, '', 22, ship.id === 1 ? '#77eee3' : '#ff9189').setOrigin(0.5).setDepth(3));
-    this.orbitLabels = [1, 2].map(id => label(this, 0, 0, id === 2 && this.mode === '1p' ? 'AI ORBIT' : 'P' + id + ' ORBIT', 14, '#b6ff74')
+    this.orbitLabels = this.match.ships.map(({id}) => label(this, 0, 0, id > 1 && this.mode === '1p' ? 'AI ORBIT' : 'P' + id + ' ORBIT', 14, '#b6ff74')
       .setOrigin(0.5).setDepth(6).setBackgroundColor('#0b1825dd').setPadding(4, 3).setVisible(false));
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,UP,DOWN,LEFT,RIGHT,ENTER') as Keys;
     this.touch = device.touch ? new TouchControls(this,this.modern) : undefined;
@@ -94,7 +98,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', focus);
     const onPause = () => {
       this.mouseFire = false;
-      this.ai.reset(); this.planner?.cancel(); this.fireGate.reset();
+      this.ais.forEach(ai => ai.reset()); this.planner?.cancel(); this.fireGates.forEach(gate => gate.reset()); this.volleyIn = 0;
       this.clock.reset(); this.input.keyboard?.resetKeys(); this.touch?.state.clear(); this.pendingFire = [false, false]; this.previewIn = 0;
       if (this.input.keyboard) this.input.keyboard.enabled = !pause.has('ad');
     };
@@ -148,11 +152,18 @@ export class GameScene extends Phaser.Scene {
       const playing = this.match.phase === 'playing';
       this.pendingFire = [false, false]; this.touch?.state.consumeFire();
       if (playing && [first, humanSecond].some(c => c.turn || c.thrust || c.fire || c.move)) this.acted = true;
-      const second = this.mode === '2p' ? humanSecond : playing && this.acted ?
-        this.ai.update(C.PHYSICS_DT, this.match.ships[1], this.match.ships[0], this.match.map.bodies,
-          { time: this.match.time, wormholes: this.match.map.wormholes }, this.match.pickups) : IDLE_CONTROL;
-      if (this.mode === '1p' && playing && this.acted) second.fire = this.fireGate.step(C.PHYSICS_DT, second.fire, this.match.ships[1].cooldown <= 1e-9 && !this.match.ships[1].laserCharge);
-      if (!playing || this.acted) this.match.step([first, second]);
+      this.volleyIn = Math.max(0, this.volleyIn - C.PHYSICS_DT);
+      const enemyControls = this.mode === '2p' ? [humanSecond] : this.ais.map((ai, i) => {
+        const ship = this.match.ships[i + 1];
+        if (!playing || !this.acted || !ship.alive) return IDLE_CONTROL;
+        const control = ai.update(C.PHYSICS_DT, ship, this.match.ships[0], this.match.map.bodies,
+          { time: this.match.time, wormholes: this.match.map.wormholes }, this.match.pickups, this.match.bullets, this.match.ships.slice(1));
+        control.fire = this.fireGates[i].step(C.PHYSICS_DT, control.fire && this.volleyIn <= 0,
+          ship.cooldown <= 1e-9 && !ship.laserCharge && this.match.bullets.filter(b => b.ownerId === ship.id).length < C.MAX_BULLETS_PER_SHIP);
+        if (control.fire) this.volleyIn = 0.4;
+        return control;
+      });
+      if (!playing || this.acted) this.match.step([first, ...enemyControls]);
       if (!this.savedResult && this.match.phase === 'matchOver') {
         this.savedResult = true;
         if (this.arcadeIndex !== null && this.match.winner === 1) profile.clearArena(this.arcadeIndex);
@@ -191,18 +202,19 @@ export class GameScene extends Phaser.Scene {
       }
       else if (event.type === 'death') {
         if (event.highlight) {
-          this.hud.announce((event.victim === 2 ? (this.mode === '1p' ? 'YOU' : 'P1') : this.mode === '1p' ? 'AI' : 'P2') + ' · ' + event.highlight);
-          if (!this.match.draw && this.match.phase !== 'matchOver' && (this.mode === '2p' || event.victim === 2)) sound.play('celebrate');
+          this.hud.announce((event.victim > 1 ? (this.mode === '1p' ? 'YOU' : 'P1') : this.mode === '1p' ? 'AI' : 'P2') + ' · ' + event.highlight);
+          if (!this.match.draw && this.match.phase !== 'matchOver' && (this.mode === '2p' || event.victim > 1)) sound.play('celebrate');
         }
         if (this.match.draw && event.victim === 1) sound.play('draw');
         sound.play('death'); this.effects.flash(event.position, playerColor(event.victim), true);
         if (!device.touch) this.cameras.main.shake(120, 0.002, false);
-      } else if (event.type === 'respawn') { this.ai.reset(); this.fireGate.reset(); this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
+      } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.volleyIn = 0; this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
       else if (event.type === 'laser') { sound.play('laserFire'); this.effects.burst(event.position, 0xffcf70, 12); }
       else if (event.type === 'mechanic') {
         sound.play(event.sound);
         if (event.pickupType) this.hud.announce((event.owner === 1 ? (this.mode === '1p' ? '' : 'P1 · ') : this.mode === '1p' ? 'AI · ' : 'P2 · ') +
           POWERUP_NAMES[event.pickupType] + (event.pickupType === 'shield' ? ' ACTIVE' : ' READY'), '#' + POWERUP_COLORS[event.pickupType].toString(16));
+        if (event.pickupType && event.owner === 1) this.hud.announce(POWERUP_HELP[event.pickupType], '#' + POWERUP_COLORS[event.pickupType].toString(16));
         this.effects.flash(event.position, event.sound === 'orbitLock' ? 0xb6ff74 : event.sound === 'shieldBreak' ? 0x75d9ff : 0xc0a1ff, event.sound === 'shieldBreak');
       }
       this.previewIn = 0;
@@ -210,7 +222,7 @@ export class GameScene extends Phaser.Scene {
   }
   private drawWorld(): void {
     const t = this.match.time, g = this.actors.clear();
-    this.guide.setVisible(this.onboarding && this.visualTime < C.ONBOARDING_TIME && !pause.paused);
+    this.guide.setVisible(this.onboarding && this.match.time < C.ONBOARDING_TIME && !pause.paused);
     this.bodies.clear();
     for (const body of this.match.map.bodies) drawCelestial(this.bodies, body, t);
     for (const gate of this.match.map.wormholes ?? []) drawWormhole(this.bodies, gate, t);
@@ -218,6 +230,7 @@ export class GameScene extends Phaser.Scene {
     if (this.previewIn <= 0) {
       this.previewIn = 1 / (device.touch ? 20 : 30); this.previews.clear();
       if (this.match.phase === 'ready' || this.match.phase === 'playing') for (const ship of this.match.ships) {
+        if (!ship.alive || ship.aimAssistFor <= 0 || (this.mode === '1p' && ship.id !== 1)) continue;
         if (ship.specialShot === 'laser' || ship.laserCharge) {
           const beam = traceLaser(ship, this.match.map.bodies, this.match.ships, t, ship.laserCharge?.angle);
           this.previews.lineStyle(1, 0xffcf70, 0.3).lineBetween(beam.start.x, beam.start.y, beam.end.x, beam.end.y);
@@ -275,7 +288,7 @@ export class GameScene extends Phaser.Scene {
         if (ship.jammedFor <= 0) this.shipLabels[i].setText((ship.id === 2 && this.mode === '1p' ? 'AI' : 'P' + ship.id) + ' · LOCKED')
           .setPosition(ship.x, Math.min(C.ARENA_BOUNDS.bottom + 12, ship.y + 49));
       }
-      if (ship.id === 2 && this.mode === '1p' && this.fireGate.warning && this.match.phase === 'playing') {
+      if (ship.id > 1 && this.mode === '1p' && this.fireGates[ship.id - 2]?.warning && this.match.phase === 'playing') {
         g.lineStyle(2, 0xffcf70, 0.65 + Math.sin(this.visualTime * 18) * 0.25).strokeCircle(ship.x, ship.y, 31);
         if (ship.jammedFor <= 0 && !lockedTargets.has(ship.id)) this.shipLabels[i].setText('AI · AIMING');
       }
@@ -291,8 +304,7 @@ export class GameScene extends Phaser.Scene {
       }
     });
     if (this.modern && !device.touch && this.mouseAim && !pause.paused && this.match.phase === 'playing') {
-      const {x,y}=this.mouseAim, s=this.match.ships[0];
-      g.lineStyle(1.5,0xc9fff3,.65).strokeCircle(x,y,9).lineBetween(x-15,y,x-6,y).lineBetween(x+6,y,x+15,y).lineBetween(x,y-15,x,y-6).lineBetween(x,y+6,x,y+15);
+      const s=this.match.ships[0];
       if(s.alive)g.lineStyle(3,0x69f4df,.75).beginPath().arc(s.x,s.y,35,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-s.cooldown/C.FIRE_COOLDOWN)).strokePath();
     }
   }
@@ -307,7 +319,7 @@ export class GameScene extends Phaser.Scene {
     }
     for (const p of this.match.map.powerUpSpawnPoints ?? []) g.lineStyle(1, 0xe6a5ff, 0.5).strokeCircle(p.x, p.y, C.POWERUP_RADIUS);
     for (const ship of this.match.ships) {
-      const force = getShipAcceleration(ship, this.match.map.bodies, t);
+      const force = getShipAcceleration(ship, this.match.map.bodies, t, this.match.map.shipGravity);
       g.lineStyle(2, 0xff9b72, 0.8).lineBetween(ship.x, ship.y, ship.x + force.x * 0.25, ship.y + force.y * 0.25);
     }
     for (const bullet of this.match.bullets) if (bullet.orbitState) {
