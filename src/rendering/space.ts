@@ -34,15 +34,36 @@ export function drawCelestial(g: Phaser.GameObjects.Graphics, source: CelestialB
   g.fillStyle(0xf5fcff).fillCircle(body.x - 3, body.y - 3, body.radius * 0.7);
 }
 export function drawWormhole(g: Phaser.GameObjects.Graphics, gate: Wormhole, time: number): void {
-  const color = gate.id.endsWith('a') ? 0x84a6ff : 0xe6a5ff;
+  const color = gate.id.startsWith('second-') ? 0xffc597 : gate.id.endsWith('a') ? 0x79ceff : 0xa6beff, r = gate.radius;
   g.save().translateCanvas(gate.x, gate.y).rotateCanvas(gate.orientation);
-  g.fillStyle(0x151c43, 0.85).fillCircle(0, 0, gate.radius);
+  // A luminous lens around a dark throat: the ring marks the actual crossing radius.
+  for (let i = 6; i > 0; i--) g.fillStyle(color, 0.018).fillCircle(0, 0, r + i * 4);
+  g.lineStyle(6, color, 0.12).strokeEllipse(0, 0, r * 3.05, r * 1.35);
+  g.lineStyle(1.5, color, 0.55).strokeEllipse(0, 0, r * 3.05, r * 1.35);
+  g.fillStyle(0x020514).fillCircle(0, 0, r);
+  for (let i = 4; i > 0; i--) g.lineStyle(i * 2, color, 0.06).strokeCircle(0, 0, r * 0.94);
+  g.lineStyle(2.5, 0xd6edff, 0.85).strokeCircle(0, 0, r);
+  // Several tightening ellipses make the opening read as depth instead of a flat symbol.
   for (let i = 0; i < 5; i++) {
-    const r = gate.radius * (0.35 + i * 0.15), a = time * 1.3 + i * 1.1;
-    g.lineStyle(i === 4 ? 3 : 1.5, color, 0.35 + i * 0.12).beginPath().arc(0, 0, r, a, a + 4.3).strokePath();
+    const depth = ((i / 5 + time * 0.17) % 1), scale = 1 - depth;
+    g.lineStyle(1, color, 0.18 + scale * 0.32).strokeEllipse(-depth * r * 0.16, 0, r * 1.7 * scale, r * 1.5 * scale);
   }
-  g.fillStyle(color).fillTriangle(gate.radius + 7, 0, gate.radius - 3, -7, gate.radius - 3, 7);
-  g.lineStyle(2, 0xffffff, 0.6).lineBetween(-7, -4, 7, -4).lineBetween(-7, 4, 7, 4);
+  for (let arm = 0; arm < 3; arm++) {
+    g.lineStyle(1.7, color, 0.65).beginPath();
+    for (let j = 0; j <= 28; j++) {
+      const f = j / 28, a = arm * Math.PI * 2 / 3 + f * 3.8 - time * 0.65, radius = r * (0.14 + f * 0.8);
+      const x = Math.cos(a) * radius, y = Math.sin(a) * radius * 0.85;
+      if (j === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.strokePath();
+  }
+  g.fillStyle(0x01030c).fillEllipse(-r * 0.12, 0, r * 0.42, r * 0.36);
+  for (let i = 0; i < 10; i++) {
+    const f = (i / 10 + time * 0.22) % 1, a = i * 2.4 - time * 0.35 + f * 1.3, radius = r * (1.45 - f * 1.1);
+    g.fillStyle(0xedfaff, Math.sin(f * Math.PI) * 0.85).fillCircle(Math.cos(a) * radius, Math.sin(a) * radius * 0.82, 1.2);
+  }
+  // A short foreground lens arc gives the rim a bright near side.
+  g.lineStyle(3, 0xe5f5ff, 0.8).beginPath().arc(0, 0, r * 1.04, 0.15, 1.8).strokePath();
   g.restore();
 }
 export function drawPickup(g: Phaser.GameObjects.Graphics, pickup: Pickup, time: number): void {

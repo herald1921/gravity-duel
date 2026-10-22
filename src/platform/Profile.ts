@@ -1,6 +1,7 @@
 import { isBadge, PAINTS, type BadgeId, type PaintId } from '../game/Rewards.js';
 import { ARCADE } from '../game/Arcade.js';
-export const SAVE_KEY = 'gravity-duel-campaign-v0100';
+import { CAMPAIGN_MAPS } from '../maps/campaign.js';
+export const SAVE_KEY = 'gravity-duel-campaign-v0110';
 export interface StorageLike { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export interface ProfileData { version: 1; runIndex: number | null; cleared: number[]; tutorialDone: boolean; music: boolean; sfx: boolean; badges: BadgeId[]; paint: PaintId; controls: 'modern' | 'classic' }
 const fresh = (): ProfileData => ({ version: 1, runIndex: null, cleared: [], tutorialDone: false, music: true, sfx: true, badges: [], paint: 'teal', controls: 'modern' });
@@ -19,7 +20,8 @@ export class Profile {
   private load(): void {
     try {
       const current = this.storage().getItem(SAVE_KEY);
-      const raw = current ?? this.storage().getItem('gravity-duel-playtest-v090');
+      const previous = current ? null : this.storage().getItem('gravity-duel-campaign-v0100');
+      const raw = current ?? previous ?? this.storage().getItem('gravity-duel-playtest-v090');
       if (!raw) return;
       const saved: unknown = JSON.parse(raw);
       if (!saved || typeof saved !== 'object' || !('version' in saved) || saved.version !== 1) return;
@@ -29,7 +31,13 @@ export class Profile {
       this.data = { version: 1, runIndex: arenaIndex(s.runIndex) ? s.runIndex : null,
         cleared: Array.isArray(s.cleared) ? [...new Set(s.cleared.filter(arenaIndex))] : [],
         tutorialDone: s.tutorialDone === true, music: s.music !== false, sfx: s.sfx !== false, badges, paint, controls: s.controls === 'classic' ? 'classic' : 'modern' };
-      if (!current) { this.data.runIndex = null; this.data.cleared = []; }
+      if (!current && previous) {
+        const cleared = new Set(this.data.cleared);
+        this.data.cleared = CAMPAIGN_MAPS.filter(m => m.legacyIndex !== undefined && cleared.has(m.legacyIndex)).map(m => m.campaignIndex!);
+        // Resume at the first uncleared lesson; new combinations never inherit unrelated completion.
+        this.data.runIndex = CAMPAIGN_MAPS.findIndex(m => !this.data.cleared.includes(m.campaignIndex!));
+        if (this.data.runIndex < 0) this.data.runIndex = null;
+      } else if (!current) { this.data.runIndex = null; this.data.cleared = []; }
     } catch { this.persistent = false; }
   }
   private save(): void {

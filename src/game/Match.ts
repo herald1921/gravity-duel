@@ -10,37 +10,41 @@ import { stepProjectile, segmentCircleContact, type Vec2 } from '../physics/grav
 import { traceLaser, type LaserTrace } from '../physics/laser.js';
 export type GameMode = '1p' | '2p';
 export type MatchPhase = 'ready' | 'playing' | 'roundOver' | 'matchOver';
-export interface Death { victim: PlayerId; cause: 'shot' | 'self' | 'hazard'; highlight?: Highlight }
+export interface Death { victim: PlayerId; cause: 'shot' | 'self' | 'hazard'; highlight?: Highlight; owner?: PlayerId }
 export type MechanicSound = 'pickup' | 'shieldActivate' | 'shieldBreak' | 'laserCharge' | 'teleport' | 'orbitLock';
 export type MatchEvent =
   | { type: 'shot'; owner: PlayerId; position: Vec2; kind: ProjectileKind }
   | { type: 'impact'; position: Vec2; kind?: ProjectileKind }
   | { type: 'orbitalEnd'; position: Vec2; owner: PlayerId; reason: 'collision' | 'expired' | 'replaced' | 'lost'; bodyId?: string }
-  | { type: 'death'; victim: PlayerId; position: Vec2; highlight?: Highlight }
+  | { type: 'death'; victim: PlayerId; position: Vec2; highlight?: Highlight; owner?: PlayerId }
   | { type: 'mechanic'; sound: MechanicSound; position: Vec2; pickupType?: PowerUpType; owner?: PlayerId }
   | { type: 'laser'; owner: PlayerId; position: Vec2 }
   | { type: 'respawn' };
 export class Match {
   readonly ships: Ship[];
-  readonly scores: Record<1 | 2, number> = { 1: 0, 2: 0 };
+  readonly scores: Record<number, number> = { 1: 0, 2: 0 };
   readonly deathCounts: Record<PlayerId, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
   readonly scoringHighlights: Record<PlayerId, Set<Highlight>> = { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set() };
   bullets: Bullet[] = []; pickups: Pickup[] = [];
   laserBeams: (LaserTrace & { age: number; owner: PlayerId })[] = [];
   phase: MatchPhase = 'ready'; phaseTime = C.ROUND_START_TIME; time = 0;
   winner: PlayerId | null = null; lastDeath: Death | null = null; draw = false;
+  roundWinner: PlayerId | null = null;
+  get freeForAll(): boolean { return this.map.combat === 'freeForAll'; }
   private pickupIn: number; private pickupSequence = 0; private spawnCursor = 0;
   private events: MatchEvent[] = [];
   private roundHighlights = new Set<Highlight>();
   constructor(readonly map: GameMap, readonly targetScore = C.FIRST_TO_SCORE) {
     this.ships = [new Ship(1, map.player1Spawn), new Ship(2, map.player2Spawn)];
     for (const [i, spawn] of (map.extraEnemySpawns ?? []).slice(0, 2).entries()) this.ships.push(new Ship((i + 3) as PlayerId, spawn));
+    if (this.freeForAll) for (const ship of this.ships) this.scores[ship.id] = 0;
     this.pickupIn = map.pickupStart ?? 6;
   }
   rematch(): void {
     for (const ship of this.ships) { this.deathCounts[ship.id] = 0; this.scoringHighlights[ship.id].clear(); }
     this.deathCounts[1] = 0; this.deathCounts[2] = 0; this.scoringHighlights[1].clear(); this.scoringHighlights[2].clear();
-    this.scores[1] = 0; this.scores[2] = 0; this.winner = null; this.time = 0;
+    for (const id of Object.keys(this.scores)) this.scores[Number(id)] = 0;
+    this.winner = null; this.time = 0;
     this.pickups = []; this.pickupIn = this.map.pickupStart ?? 6; this.pickupSequence = 0; this.spawnCursor = 0;
     this.events = []; this.respawn();
   }
@@ -49,7 +53,7 @@ export class Match {
     this.ships[0].reset(this.map.player1Spawn); this.ships[1].reset(this.map.player2Spawn);
     this.ships.slice(2).forEach((ship, i) => ship.reset(this.map.extraEnemySpawns![i]));
     this.bullets = []; this.laserBeams = []; this.phase = 'ready'; this.phaseTime = C.ROUND_START_TIME;
-    this.lastDeath = null; this.draw = false; this.events.push({ type: 'respawn' });
+    this.lastDeath = null; this.roundWinner = null; this.draw = false; this.events.push({ type: 'respawn' });
   }
   drainEvents(): MatchEvent[] { return this.events.splice(0); }
   fire(id: PlayerId): boolean {
@@ -81,7 +85,7 @@ export class Match {
     const ship = this.ships[victim - 1];
     if (blockAttack(ship)) {
       this.events.push({ type: 'mechanic', sound: 'shieldBreak', position: { x: ship.x, y: ship.y } });
-    } else deaths.set(victim, { victim, cause: victim === owner ? 'self' : 'shot',
+    } else deaths.set(victim, { victim, owner, cause: victim === owner ? 'self' : 'shot',
       ...(bullet && victim !== owner ? { highlight: shotHighlight(bullet) } : {}) });
   }
   isPickupSafe(point: Vec2, time = this.time): boolean {
@@ -181,22 +185,24 @@ export class Match {
     this.bullets = survivors; this.time += C.PHYSICS_DT;
     if (deaths.size) this.resolveDeaths([...deaths.values()]);
   }
-  private canHit(owner: PlayerId, target: PlayerId): boolean { return owner === 1 || target === 1 || owner === target; }
+  private canHit(owner: PlayerId, target: PlayerId): boolean { return this.freeForAll || owner === 1 || target === 1 || owner === target; }
   private resolveDeaths(deaths: Death[]): void {
     for (const death of deaths) {
       this.deathCounts[death.victim]++;
       const ship = this.ships[death.victim - 1]; ship.alive = false; ship.laserCharge = null; ship.thrusting = false;
-      this.events.push({ type: 'death', victim: death.victim, position: { x: ship.x, y: ship.y }, highlight: death.highlight });
-      if (this.ships.length > 2 && death.victim > 1 && death.cause === 'shot' && death.highlight) this.roundHighlights.add(death.highlight);
+      this.events.push({ type: 'death', victim: death.victim, owner: death.owner, position: { x: ship.x, y: ship.y }, highlight: death.highlight });
+      if (this.ships.length > 2 && death.victim > 1 && death.cause === 'shot' && death.highlight && (!this.freeForAll || death.owner === 1)) this.roundHighlights.add(death.highlight);
     }
     const playerDead = !this.ships[0].alive, enemiesDead = this.ships.slice(1).every(ship => !ship.alive);
-    if (this.ships.length > 2 && !playerDead && !enemiesDead) return;
-    this.draw = this.ships.length === 2 ? deaths.length === 2 : playerDead && enemiesDead;
+    const living = this.ships.filter(ship => ship.alive);
+    if (this.freeForAll ? living.length > 1 : this.ships.length > 2 && !playerDead && !enemiesDead) return;
+    this.draw = this.freeForAll ? living.length === 0 : this.ships.length === 2 ? deaths.length === 2 : playerDead && enemiesDead;
     this.lastDeath = deaths.find(d => d.victim === 1) ?? deaths[0]; this.bullets = [];
     for (const ship of this.ships) { ship.thrusting = false; ship.laserCharge = null; }
     if (!this.draw) {
-      const scorer = this.ships.length === 2 ? otherPlayer(deaths[0].victim) : playerDead ? 2 : 1; this.scores[scorer]++;
-      const scoredDeath = deaths.find(death => otherPlayer(death.victim) === scorer);
+      const scorer = this.freeForAll ? living[0].id : this.ships.length === 2 ? otherPlayer(deaths[0].victim) : playerDead ? 2 : 1;
+      this.roundWinner = scorer; this.scores[scorer]++;
+      const scoredDeath = deaths.find(death => this.freeForAll ? death.owner === scorer : otherPlayer(death.victim) === scorer);
       if (scoredDeath?.cause === 'shot' && scoredDeath.highlight) this.scoringHighlights[scorer].add(scoredDeath.highlight);
       if (scorer === 1) for (const highlight of this.roundHighlights) this.scoringHighlights[1].add(highlight);
       if (this.scores[scorer] >= this.targetScore) this.winner = scorer;

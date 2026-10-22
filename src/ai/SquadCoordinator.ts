@@ -1,4 +1,5 @@
-import type { Ship, PlayerId } from '../entities/Ship.js';
+import type { Ship, PlayerId, ShipControl } from '../entities/Ship.js';
+import type { OpeningFireGate } from '../game/OpeningFireGate.js';
 import { bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialBody.js';
 import type { Pickup } from '../entities/PowerUp.js';
 import { segmentCircleContact, type Vec2 } from '../physics/gravity.js';
@@ -47,8 +48,8 @@ export class SquadCoordinator {
       const speed = Math.hypot(this.contact.vx, this.contact.vy);
       const heading = role === 'PRESSURE' ? angle : role === 'INTERCEPT' && speed > 35 ?
         Math.atan2(this.contact.vy, this.contact.vx) : angle + (i === 1 ? 1.25 : -1.25);
-      const radius = role === 'PRESSURE' ? 430 : role === 'FLANK' ? 300 : 350;
-      const waypoint = this.position(heading, radius, current, claimed, time + 0.6);
+      const radius = role === 'PRESSURE' ? 340 : role === 'FLANK' ? 300 : 350;
+      const waypoint = this.position(heading, radius, current, claimed, time + 0.6, role === 'PRESSURE');
       claimed.push(waypoint);
       this.orders.set(ship.id, { role, waypoint, side: i === 2 ? -1 : 1,
         advance: role !== 'PRESSURE' && time < this.coveredUntil });
@@ -65,7 +66,7 @@ export class SquadCoordinator {
       if (candidates[0]) { reserved.add(candidates[0].id); this.orders.get(candidates[0].id)!.pickupId = pickup.id; }
     }
   }
-  private position(angle: number, radius: number, bodies: readonly CelestialBody[], claimed: readonly Vec2[], time: number): Vec2 {
+  private position(angle: number, radius: number, bodies: readonly CelestialBody[], claimed: readonly Vec2[], time: number, needsFireLane = false): Vec2 {
     let best = { x: 640, y: 600 }, cost = Infinity;
     for (const delta of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6, Math.PI]) for (const scale of [1, 0.8, 1.2]) {
       const raw = { x: this.contact.x + Math.cos(angle + delta) * radius * scale, y: this.contact.y + Math.sin(angle + delta) * radius * scale };
@@ -75,6 +76,8 @@ export class SquadCoordinator {
         const d = Math.hypot(p.x - body.x, p.y - body.y), margin = body.collisionRadius + (body.lethal ? 100 : 65);
         if (d < margin) score += 3000 + (margin - d) * 20;
         if (inPulsarBeam({ ...p, radius: 20 }, body, time)) score += 200;
+        // Suppression needs a usable firing lane, not just a safe parking spot behind a planet.
+        if (needsFireLane && segmentCircleContact(p, this.contact, { ...body, radius: body.collisionRadius + 12 }) !== null) score += 950;
       }
       for (const other of claimed) if (Math.hypot(p.x - other.x, p.y - other.y) < 150) score += 1800;
       if (score < cost) { best = p; cost = score; }
@@ -85,6 +88,14 @@ export class SquadCoordinator {
     if (time < this.nextShotAt || !candidates.length) return null;
     const sorted = [...candidates].sort((a, b) => a - b);
     return sorted.find(id => id > (this.lastShooter ?? 0)) ?? sorted[0];
+  }
+  coordinateFire(dt: number, ships: readonly Ship[], controls: ShipControl[], gates: readonly OpeningFireGate[], ready: readonly boolean[], time: number): void {
+    const prepared = ships.filter((ship, i) => gates[i].prepare(dt, controls[i].fire, ship.alive && ready[i])).map(ship => ship.id);
+    const shooter = this.selectShooter(prepared, time);
+    controls.forEach((control, i) => {
+      control.fire = ships[i].id === shooter;
+      if (control.fire) gates[i].consume();
+    });
   }
   recordShot(id: PlayerId, time: number): void {
     this.reserveShot(id, time);

@@ -1,0 +1,6 @@
+{"map":"unit-1-8","stats":{"FLANK":{"seconds":60,"shots":9,"poorSolution":3.2},"PRESSURE":{"seconds":60,"shots":11,"poorSolution":1.1}}}
+{"map":"unit-1-9","stats":{"FLANK":{"seconds":60,"shots":9,"poorSolution":4.9},"INTERCEPT":{"seconds":60,"shots":9,"poorSolution":5.5},"PRESSURE":{"seconds":60,"shots":9,"poorSolution":1}}}
+{"map":"unit-2-8","stats":{"FLANK":{"seconds":60,"shots":21,"poorSolution":5},"PRESSURE":{"seconds":60,"shots":20,"poorSolution":7.2}}}
+{"map":"unit-2-9","stats":{"FLANK":{"seconds":60,"shots":20,"poorSolution":17.8},"INTERCEPT":{"seconds":58.8,"shots":7,"poorSolution":37.1},"PRESSURE":{"seconds":60,"shots":13,"poorSolution":22.7}}}
+{"map":"unit-3-8","stats":{"FLANK":{"seconds":60,"shots":7,"poorSolution":50.1},"PRESSURE":{"seconds":60,"shots":4,"poorSolution":53}}}
+{"map":"unit-3-9","stats":{"FLANK":{"seconds":60,"shots":8,"poorSolution":48.3},"INTERCEPT":{"seconds":60,"shots":11,"poorSolution":46.2},"PRESSURE":{"seconds":60,"shots":7,"poorSolution":47.5}}}

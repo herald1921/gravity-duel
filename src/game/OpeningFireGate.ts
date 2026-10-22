@@ -11,7 +11,12 @@ export class OpeningFireGate {
   reset(): void { this.age = null; this.elapsed = 0; }
   get warning(): boolean { return this.age !== null; }
   step(dt: number, wantsFire: boolean, ready: boolean): boolean {
-    if (!this.windup) return wantsFire;
+    if (!this.prepare(dt, wantsFire, ready)) return false;
+    this.consume(); return true;
+  }
+  /** Preparation is per pilot; squad arbitration must not reset or delay a partner's timer. */
+  prepare(dt: number, wantsFire: boolean, ready: boolean): boolean {
+    if (!this.windup) return wantsFire && ready;
     this.elapsed += dt;
     if (!ready) { this.age = null; return false; }
     if (this.elapsed < this.interval) return false;
@@ -20,6 +25,7 @@ export class OpeningFireGate {
     this.age += dt;
     if (this.age > 1.8) { this.age = null; return false; }
     if (this.age < this.windup || !wantsFire) return false;
-    this.age = null; this.elapsed = 0; return true;
+    return true;
   }
+  consume(): void { this.age = null; this.elapsed = 0; }
 }

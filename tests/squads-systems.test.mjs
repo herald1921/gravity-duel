@@ -60,9 +60,9 @@ test('all revised campaign systems keep bodies separated and inside the playable
   }
 });
 
-test('neutron star appears in introduction, portal reinforcement and moving companion levels; beams follow its orbit', () => {
-  for (const index of [11, 14, 16]) assert.ok(CAMPAIGN_MAPS[index].bodies.some(b => b.type === 'pulsar'));
-  const neutron = CAMPAIGN_MAPS[16].bodies.find(b => b.type === 'pulsar');
+test('neutron star appears in introduction, static combination and moving companion levels; beams follow its orbit', () => {
+  for (const index of [8, 11, 13]) assert.ok(CAMPAIGN_MAPS[index].bodies.some(b => b.type === 'pulsar'));
+  const neutron = CAMPAIGN_MAPS[13].bodies.find(b => b.type === 'pulsar');
   assert.ok(neutron.motion);
   for (const t of [0, 3, 7, 11]) {
     const p = bodyPosition(neutron, t), a = pulsarAngle(neutron, t);
@@ -73,7 +73,7 @@ test('neutron star appears in introduction, portal reinforcement and moving comp
 });
 
 test('hierarchical and neutron-system predictions match live projectile motion after worker-style cloning', () => {
-  for (const map of [CAMPAIGN_MAPS[15], CAMPAIGN_MAPS[16], CAMPAIGN_MAPS[17]]) {
+  for (const map of [CAMPAIGN_MAPS[12], CAMPAIGN_MAPS[13], CAMPAIGN_MAPS[14]]) {
     const ship = new Ship(1, map.player1Spawn), bullet = createProjectile(ship, -0.5, 'normal', 5.3);
     const prediction = simulateTrajectory(bullet, structuredClone(map.bodies), [], 2, 1, { time: 5.3 });
     const live = structuredClone(bullet); let event;
@@ -124,7 +124,7 @@ test('cover orders change actual wing movement and pickup reservations prevent d
 });
 
 test('coordinated squads actually fire and reposition in moving planetary, neutron and black-hole arenas', () => {
-  for (const index of [8, 16, 26]) {
+  for (const index of [5, 14, 26]) {
     const map = CAMPAIGN_MAPS[index], match = new Match(map, 3), squad = new SquadCoordinator(index), team = match.ships.slice(1), player = match.ships[0];
     const ais = team.map((_, i) => new SpaceAI(() => 0.4 + i * 0.11, undefined, difficultyFor(index)));
     const gates = team.map(() => new OpeningFireGate(null, difficultyFor(index)));
@@ -134,8 +134,7 @@ test('coordinated squads actually fire and reposition in moving planetary, neutr
       for (const o of squad.orders.values()) roles.add(o.role);
       const controls = team.map((s, i) => match.phase === 'playing' && s.alive ? ais[i].update(dt, s, player, map.bodies, { time: match.time, wormholes: map.wormholes }, match.pickups, match.bullets, team, squad.orders.get(s.id)) : { ...IDLE_CONTROL });
       const ready = team.map(s => s.alive && s.cooldown <= 1e-9 && !s.laserCharge);
-      const shooter = squad.selectShooter(team.filter((_, i) => controls[i].fire && ready[i]).map(s => s.id), match.time);
-      controls.forEach((c, i) => { c.fire = gates[i].step(dt, c.fire && shooter === team[i].id, ready[i]); });
+      squad.coordinateFire(dt, team, controls, gates, ready, match.time);
       match.step([IDLE_CONTROL, ...controls]);
       for (const event of match.drainEvents()) {
         if (event.type === 'shot' || event.type === 'laser') { fired.add(event.owner); squad.recordShot(event.owner, match.time); }

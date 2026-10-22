@@ -13,6 +13,9 @@ export interface GameMap {
   shipGravity?: 'none' | 'all' | 'blackHoles';
   extraEnemySpawns?: readonly Spawn[];
   campaignIndex?: number; lesson?: PowerUpType;
+  combat?: 'squad' | 'freeForAll';
+  unitIndex?: number; stageIndex?: number; unitLength?: number; legacyIndex?: number;
+  lessons?: readonly PowerUpType[];
 }
 const contest = [{ x: 610, y: 175 }, { x: 640, y: 600 }, { x: 380, y: 400 }, { x: 870, y: 400 }];
 const spawns = { player1Spawn: { x: 210, y: 570, angle: -0.5 }, player2Spawn: { x: 1070, y: 190, angle: 2.65 } };
@@ -40,7 +43,7 @@ export const MAPS: readonly GameMap[] = [
     bodies: [createBody('pulsar', 'pulsar', 640, 375, { beamPhase: -0.7 })],
     powerUpSpawnPoints: contest, powerUps: ['homing', 'shield', 'laser'] },
   { id: 'wormhole-relay', name: 'Wormhole Relay', description: 'One shot. Two sides of space.',
-    hint: 'SHIPS + SHOTS CAN REUSE PORTALS — LASERS STAY STRAIGHT', ...spawns,
+    hint: 'SHIPS + SHOTS CAN CROSS WORMHOLES — LASERS STAY STRAIGHT', ...spawns,
     bodies: [createBody('relay-moon', 'moon', 640, 370)],
     wormholes: portalPair([390, 320, 0], [890, 440, -Math.PI / 2]),
     powerUpSpawnPoints: [{ x: 550, y: 180 }, { x: 730, y: 585 }], powerUps: ['homing', 'shield', 'laser'] },

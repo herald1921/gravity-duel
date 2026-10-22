@@ -10,6 +10,7 @@ import { label, playerColor } from '../rendering/draw.js';
 import { button, soundButton } from './widgets.js';
 interface Actions { pause(): void; resume(): void; restart(): void; menu(): void; next(): void; again(): void }
 export class GameHUD {
+  private freeForAll: boolean;
   private panelArt: Phaser.GameObjects.Graphics; private emblem: Phaser.GameObjects.Graphics;
   private rewardText: Phaser.GameObjects.Text; private rewards: BadgeId[] = []; private resultTime = 0;
   private score: Phaser.GameObjects.Text; private bars: Phaser.GameObjects.Graphics;
@@ -21,10 +22,11 @@ export class GameHUD {
   private notice: Phaser.GameObjects.Text; private noticeTime = 0;
   private debugText?: Phaser.GameObjects.Text; private panelKey = ''; private primary?: () => void;
   constructor(private scene: Phaser.Scene, private mode: GameMode, match: Match, private arcadeIndex: number | null, private callbacks: Actions) {
+    this.freeForAll = match.freeForAll;
     scene.add.graphics().setDepth(10).fillStyle(0x0c1d31, 0.97).fillRoundedRect(16, 12, 1248, 84,14).lineStyle(1, 0x71b5c4, 0.35).lineBetween(32, 95, 1248, 95);
     label(scene, 32, 23, match.map.name, 24).setDepth(11);
-    label(scene, 32, 60, arcadeIndex === null ? 'FREE PLAY' : 'UNIT ' + (Math.floor(arcadeIndex / 9)+1) + ' · ' + (arcadeIndex%9+1) + '/9', 22, '#9ab5ce').setDepth(11);
-    this.score = label(scene, 640, 23, '', 30).setOrigin(0.5, 0).setDepth(11);
+    label(scene, 32, 60, arcadeIndex === null ? 'FREE PLAY' : 'UNIT ' + (match.map.unitIndex!+1) + ' · ' + (match.map.stageIndex!+1) + '/' + match.map.unitLength, 22, '#9ab5ce').setDepth(11);
+    this.score = label(scene, 640, 23, '', match.freeForAll ? 23 : 30).setOrigin(0.5, 0).setDepth(11);
     label(scene, 640, 65, 'FIRST TO ' + match.targetScore, 18, '#a4b6c7').setOrigin(0.5, 0).setDepth(11);
     this.loadouts = [label(scene, 290, 23, '', 21, '#77eee3'), label(scene, 850, 23, '', 21, '#ff9189')];
     this.loadouts.forEach(t => t.setDepth(11));
@@ -48,7 +50,8 @@ export class GameHUD {
   announce(text: string, color = '#b6ff74'): void { this.notice.setText(text).setColor(color); this.noticeTime = 2.5; }
   setRewards(ids: BadgeId[]): void { this.rewards = ids; }
   tick(dt: number): void { this.noticeTime = Math.max(0, this.noticeTime - dt); this.resultTime += dt; }
-  name(id: PlayerId): string { return this.mode === '1p' ? id === 1 ? 'YOU' : 'AI' : 'P' + id; }
+  name(id: PlayerId): string { return this.mode === '1p' ? id === 1 ? 'YOU' : this.freeForAll ? 'AI ' + (id - 1) : 'AI' : 'P' + id; }
+  private scoreText(match: Match): string { return match.freeForAll ? match.ships.map(s => this.name(s.id) + ' ' + match.scores[s.id]).join(' / ') : this.name(1) + ' ' + match.scores[1] + ' : ' + match.scores[2] + ' ' + this.name(2); }
   activatePrimary(): void { if (!pause.has('ad')) this.primary?.(); }
   private panel(key: string, title: string, detail: string, actions: [string, () => void][]): void {
     this.overlay.setVisible(true); this.banner.setVisible(false); this.audio.setVisible(key === 'pause'); this.rewardText.setVisible(false);
@@ -84,12 +87,13 @@ export class GameHUD {
     if (!profile.persistent && this.mode === '1p') this.rewardText.setText(this.rewardText.text + '\nProgress lasts only this visit.');
   }
   update(match: Match, debug: boolean, fps: number): void {
-    this.score.setText(this.name(1) + ' ' + match.scores[1] + ' : ' + match.scores[2] + ' ' + this.name(2));
+    this.score.setText(this.scoreText(match));
     this.bars.clear();
     match.ships.slice(0, 2).forEach((ship, i) => {
       this.loadouts[i].setText((ship.laserCharge ? 'CHARGING' : ship.specialShot ? POWERUP_NAMES[ship.specialShot] : 'CANNON') +
         '\n' + (ship.aimAssistFor > 0 ? 'GUIDE ' + Math.ceil(ship.aimAssistFor) + 's' : ship.shield ? 'SHIELD ON' : ship.cooldown > 0 ? 'RELOADING' : 'READY'));
-      if (i === 1 && match.ships.length > 2) this.loadouts[i].setText('ENEMY SQUAD\n' + match.ships.slice(1).filter(s => s.alive).length + ' / ' + (match.ships.length - 1) + ' LEFT');
+      if (i === 1 && match.ships.length > 2) this.loadouts[i].setText(match.freeForAll ? 'FREE FOR ALL\n' + match.ships.filter(s => s.alive).length + ' / 3 ALIVE' : 'ENEMY SQUAD\n' + match.ships.slice(1).filter(s => s.alive).length + ' / ' + (match.ships.length - 1) + ' LEFT');
+      if (i === 0 && !ship.alive) this.loadouts[i].setText('ELIMINATED\nWATCH RIVALS');
       this.bars.fillStyle(0x293b48).fillRect(i === 0 ? 290 : 850, 81, 155, 4);
       this.bars.fillStyle(playerColor(ship.id), 0.9).fillRect(i === 0 ? 290 : 850, 81, Math.max(0.1, 155 * (1 - ship.cooldown / FIRE_COOLDOWN)), 4);
     });
@@ -102,16 +106,18 @@ export class GameHUD {
     else if (match.phase === 'matchOver') {
       if (this.arcadeIndex !== null && match.winner === 1) {
         if (nextArena(this.arcadeIndex) === null) this.panel('complete', 'GRAVITY MASTER', 'ALL 3 UNITS / 27 ARENAS COMPLETE', [['PLAY AGAIN', c.again], ['MAIN MENU', c.menu]]);
-        else this.panel('clear', 'ARENA CLEAR', match.map.name + '  /  ' + match.scores[1] + ' : ' + match.scores[2], [['NEXT ARENA', c.next], ['RETRY', c.restart], ['MAIN MENU', c.menu]]);
-      } else this.panel('over', match.winner === 1 && this.mode === '1p' ? 'YOU WIN' : this.mode === '1p' ? 'TRY AGAIN' : this.name(match.winner!) + ' WINS', match.scores[1] + ' : ' + match.scores[2] + (this.mode === '1p' && match.winner === 2 ? '\n' + defeatTip(match) : '\nA well-earned victory.'), [['REMATCH', c.restart], ['MAIN MENU', c.menu]]);
+        else this.panel('clear', 'ARENA CLEAR', match.map.name + '  /  ' + this.scoreText(match), [['NEXT ARENA', c.next], ['RETRY', c.restart], ['MAIN MENU', c.menu]]);
+      } else this.panel('over', match.winner === 1 && this.mode === '1p' ? 'YOU WIN' : this.mode === '1p' ? 'TRY AGAIN' : this.name(match.winner!) + ' WINS', this.scoreText(match) + (this.mode === '1p' && match.winner !== 1 ? '\n' + this.name(match.winner!) + ' WINS · ' + defeatTip(match) : '\nA well-earned victory.'), [['REMATCH', c.restart], ['MAIN MENU', c.menu]]);
       this.drawResult(match);
     } else {
       this.overlay.setVisible(false); this.panelKey = ''; this.primary = undefined;
-      this.banner.setVisible(match.phase !== 'playing');
+      const spectating = match.freeForAll && !match.ships[0].alive && match.phase === 'playing';
+      this.banner.setVisible(match.phase !== 'playing' || spectating);
+      if (spectating) this.banner.setText('YOU ARE OUT — WATCH THE RIVALS FINISH THIS ROUND');
       if (match.phase === 'ready') this.banner.setText('GET READY  ' + match.phaseTime.toFixed(1));
       else if (match.phase === 'roundOver') {
         const death = match.lastDeath, reason = death?.cause === 'self' ? 'HIT BY OWN SHOT' : death?.cause === 'hazard' ? 'DESTROYED BY CORE' : 'HIT BY ENEMY';
-        this.banner.setText(match.draw ? 'DOUBLE K.O.' : this.name(otherPlayer(death!.victim)) + ' +1\n' + this.name(death!.victim) + ': ' + reason);
+        this.banner.setText(match.draw ? 'DRAW — NO SURVIVORS' : this.name(match.roundWinner ?? otherPlayer(death!.victim)) + ' +1\n' + (match.freeForAll ? 'LAST PILOT STANDING' : this.name(death!.victim) + ': ' + reason));
       }
     }
   }

@@ -2,7 +2,7 @@ import { AI_AIM_ERROR_DEGREES, AI_AIM_SECONDS, AI_FIRE_DELAY, AI_MOVE_SECONDS, A
 import { createProjectile, type Launcher } from '../entities/Bullet.js';
 import { bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialBody.js';
 import type { Pickup, ProjectileKind, SpecialShot } from '../entities/PowerUp.js';
-import { angleDifference, type Ship, type ShipControl } from '../entities/Ship.js';
+import { angleDifference, type Ship, type ShipControl, type PlayerId } from '../entities/Ship.js';
 import { segmentCircleContact, simulateTrajectory, type CollisionTarget, type SpaceContext, type Trajectory, type Vec2 } from '../physics/gravity.js';
 import { traceLaser } from '../physics/laser.js';
 import type { AimPlanner } from './TrajectoryPlanner.js';
@@ -37,6 +37,8 @@ export function findAimSolution(self: Launcher & CollisionTarget, target: Collis
 export class SpaceAI {
   solution: AimSolution | null = null; targetPoint: Vec2 | null = null;
   private decisionIn = 0; private planAge = 0; private goalAngle = 0;
+  private blockedFor = 0;
+  private targetId: PlayerId | null = null;
   private phaseTime = AI_AIM_SECONDS; private moving = false; private side = 1;
   private plannedWeapon: SpecialShot | 'normal' = 'normal';
   private pending = false; private revision = 0;
@@ -44,10 +46,13 @@ export class SpaceAI {
   reset(): void {
     this.revision++; this.pending = false;
     this.solution = null; this.targetPoint = null; this.decisionIn = 0; this.planAge = 0;
+    this.blockedFor = 0;
+    this.targetId = null;
     this.phaseTime = AI_AIM_SECONDS; this.moving = false; this.side = this.random() > 0.5 ? 1 : -1;
   }
   update(dt: number, self: Ship, target: Ship, bodies: readonly CelestialBody[], context: SpaceContext = {}, pickups: readonly Pickup[] = [], bullets: readonly Bullet[] = [], allies: readonly Ship[] = [], order?: SquadOrder): ShipControl {
     if (!self.alive || !target.alive) return { turn: 0, thrust: 0, fire: false };
+    if (this.targetId !== target.id) { this.reset(); this.targetId = target.id; }
     this.decisionIn -= dt; this.phaseTime -= dt; this.planAge += dt;
     const weapon = self.specialShot ?? 'normal';
     if (weapon !== this.plannedWeapon) { this.decisionIn = 0; this.solution = null; }
@@ -75,13 +80,17 @@ export class SpaceAI {
     }
     const current = bodies.map(body => bodyAt(body, (context.time ?? 0) + 0.5));
     const navigation = this.navigation(self, target, current, pickups, context.time ?? 0, bullets, allies, order);
+    this.blockedFor = (this.solution?.distance ?? Infinity) > 125 ? this.blockedFor + dt : 0;
+    if (order?.role === 'PRESSURE' && this.blockedFor > 0.9 && Math.hypot(order.waypoint.x - self.x, order.waypoint.y - self.y) > 60) navigation.urgent = true;
     const moving = !self.laserCharge && (this.moving || navigation.urgent);
     const independent = this.difficulty?.independentAim === true;
     const error = angleDifference(moving && !independent ? navigation.angle : this.goalAngle, self.angle);
     const speed = Math.hypot(self.vx, self.vy);
     const turn = Math.max(-1, Math.min(1, error * 3));
     const thrust = moving ? Math.abs(error) < 0.65 ? 1 : speed > 25 ? -1 : 0 : speed > 35 ? -1 : 0;
-    let fire = (!moving || independent) && this.planAge >= (this.difficulty?.fireDelay ?? AI_FIRE_DELAY) && Math.abs(error) < 0.055 && (this.solution?.distance ?? Infinity) < (weapon === 'orbital' ? 115 : 75);
+    // Pressure pilots also threaten a near-miss lane; precision weapons retain their stricter checks.
+    const suppressing = order?.role === 'PRESSURE' && weapon === 'normal';
+    let fire = (!moving || independent) && this.planAge >= (this.difficulty?.fireDelay ?? AI_FIRE_DELAY) && Math.abs(error) < (suppressing ? 0.09 : 0.055) && (this.solution?.distance ?? Infinity) < (weapon === 'orbital' ? 115 : suppressing ? 125 : 75);
     if (weapon === 'laser') fire = fire && traceLaser(self, bodies, [target], context.time ?? 0).event?.type === 'ship';
     if (fire && self.cooldown <= 1e-9 && !this.difficulty) this.phaseTime = Math.min(this.phaseTime, 0.45);
     return independent ? { turn: 0, thrust: 0, fire, independentAim: true, aim: this.goalAngle,
@@ -109,7 +118,7 @@ export class SpaceAI {
     if (nearby && this.moving && (this.difficulty?.seekPickups ?? true)) { const d = Math.max(1, Math.hypot(nearby.x - self.x, nearby.y - self.y)); x = (nearby.x - self.x) / d * 2; y = (nearby.y - self.y) / d * 2; }
     if (this.difficulty?.dodge) {
       for (const bullet of bullets) {
-        if (bullet.ownerId !== 1) continue;
+        if (bullet.ownerId === self.id || allies.some(s => s.id === bullet.ownerId)) continue;
         const rx = bullet.x - self.x, ry = bullet.y - self.y, vx = bullet.vx - self.vx, vy = bullet.vy - self.vy;
         const closest = Math.max(0, Math.min(0.65, -(rx * vx + ry * vy) / Math.max(1, vx * vx + vy * vy)));
         if (closest <= 0 || Math.hypot(rx + vx * closest, ry + vy * closest) > 65) continue;

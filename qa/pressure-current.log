@@ -1,0 +1,3 @@
+{"map":"unit-1-6","stats":{"PRESSURE":{"seconds":60,"shots":13,"poorSolution":0},"FLANK":{"seconds":60,"shots":5,"poorSolution":8.8}}}
+{"map":"unit-2-9","stats":{"PRESSURE":{"seconds":60,"shots":19,"poorSolution":15.2},"FLANK":{"seconds":60,"shots":18,"poorSolution":14.4}}}
+{"map":"unit-3-12","stats":{"PRESSURE":{"seconds":60,"shots":17,"poorSolution":49.3},"FLANK":{"seconds":60,"shots":4,"poorSolution":54}}}

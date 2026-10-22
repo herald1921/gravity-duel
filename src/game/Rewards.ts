@@ -2,7 +2,7 @@ import type { GameMode, Match } from './Match.js';
 export const BADGES = [
   { id: 'clean-sweep', name: 'CLEAN SWEEP', description: 'Win an AI match without losing a ship.' },
   { id: 'slingshot', name: 'SLINGSHOT', description: 'Score with a shot bent by gravity.' },
-  { id: 'portal', name: 'PORTAL ACE', description: 'Score through a wormhole.' },
+  { id: 'portal', name: 'WORMHOLE ACE', description: 'Score through a wormhole.' },
   { id: 'orbit', name: 'ORBIT MASTER', description: 'Score with a captured orbital missile.' },
 ] as const;
 export type BadgeId = typeof BADGES[number]['id'];

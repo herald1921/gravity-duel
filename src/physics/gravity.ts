@@ -137,10 +137,17 @@ function movingContact(start: Vec2, end: Vec2, body: CelestialBody, time: number
   return segmentCircleContact({ x: start.x - a.x, y: start.y - a.y }, { x: end.x - b.x, y: end.y - b.y }, { x: 0, y: 0, radius }, padding);
 }
 export function steerHoming(state: ProjectileState, targets: readonly CollisionTarget[]): void {
+  const previousLock = state.homingTargetId;
   delete state.homingTargetId;
   if (state.kind !== 'homing' || state.age + 1e-9 < C.HOMING_ARM_TIME ||
       state.age >= C.HOMING_ARM_TIME + C.HOMING_TRACK_TIME) return;
-  const target = targets.find(t => t.id !== state.ownerId && t.alive !== false);
+  const rivals = targets.filter(t => t.id !== state.ownerId && t.alive !== false);
+  const heading = Math.atan2(state.vy, state.vx);
+  const cost = (t: CollisionTarget) => {
+    const angle = Math.atan2(t.y - state.y, t.x - state.x) - heading;
+    return Math.hypot(t.x - state.x, t.y - state.y) + Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) * 200;
+  };
+  const target = rivals.find(t => t.id === previousLock) ?? rivals.sort((a, b) => cost(a) - cost(b) || a.id - b.id)[0];
   if (!target) return;
   state.homingTargetId = target.id;
   const currentSpeed = Math.hypot(state.vx, state.vy), angle = Math.atan2(state.vy, state.vx);
