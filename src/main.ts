@@ -19,7 +19,7 @@ const game = new Phaser.Game({
   callbacks: { postBoot: instance => {
     document.getElementById('loading')?.remove();
     instance.canvas.tabIndex = 0;
-    instance.canvas.setAttribute('aria-label', 'Gravity Duel v0.10. Three units, 27 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims and fires. Classic controls available in menu.');
+    instance.canvas.setAttribute('aria-label', 'Gravity Duel v0.10.1. Three units, 27 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims and fires. Classic controls available in menu.');
     instance.events.once(Phaser.Core.Events.DESTROY, cleanup);
   } }, banner: false,
 });

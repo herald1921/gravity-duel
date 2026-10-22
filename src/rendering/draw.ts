@@ -42,7 +42,7 @@ export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, se
     g.fillStyle(0xe56e39).fillCircle(x,y,r);
     for(let i=0;i<24;i++) {
       const c=Phaser.Display.Color.Interpolate.ColorWithColor(new Phaser.Display.Color(242,133,52),new Phaser.Display.Color(255,242,184),24,i);
-      g.fillStyle(Phaser.Display.Color.GetColor(c.r,c.g,c.b)).fillCircle(x-i*1.1,y-i*.9,r-i*1.8);
+      g.fillStyle(Phaser.Display.Color.GetColor(c.r,c.g,c.b)).fillCircle(x-i*r*.008,y-i*r*.006,r-i*r*.022);
     }
     for(let i=0;i<14;i++) {
       const a=i*Math.PI/7+seconds*.07;

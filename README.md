@@ -1,10 +1,17 @@
 # Gravity Duel
 
-**Play online:** [v0.10 campaign](https://herald1921.github.io/gravity-duel/) · [previous v0.9 playtest](https://herald1921.github.io/gravity-duel/legacy-v0.9/)
+**Play online:** [v0.10.1 campaign](https://herald1921.github.io/gravity-duel/) · [previous v0.10](https://herald1921.github.io/gravity-duel/legacy-v0.10/) · [original v0.9](https://herald1921.github.io/gravity-duel/legacy-v0.9/)
 
 Gravity Duel is a browser arcade game built with Phaser and TypeScript. Move through compact orbital arenas, aim independently, and bend projectiles around planets to defeat an AI rival.
 
-This repository contains the `v0.10.0` campaign playtest: 27 levels across three units, increasingly skilled AI, and up to three simultaneous enemies. The previous source is preserved by the `v0.9.0-playtest` tag; its original web build and standalone HTML are also retained.
+This repository contains the `v0.10.1` campaign playtest: 27 levels across three units, increasingly skilled AI, and up to three simultaneous enemies. Previous sources are preserved by the `v0.9.0-playtest` and `v0.10.0-playtest` tags; original web builds and standalone HTML files are also retained. This patch keeps v0.10 campaign progress.
+
+## v0.10.1 corrections
+
+- **Squad coordination:** a shared coordinator assigns pressure, flank and intercept roles, separate approach positions and exclusive pickup reservations. Pressure fire triggers partner advancement, firing priority rotates, and roles are reassigned after casualties. Roles are visible under enemy ships. A lone survivor returns to solo behavior.
+- **System motion:** binary stars, star/neutron companions and paired black holes now orbit a common mass-balanced center instead of tracing unrelated identical circles. The solar-family level has a moon orbiting its moving planet; the triple-star level uses an inner binary and a wider companion orbit. Position, velocity, collision, AI prediction and rendering share the same analytical paths. These are prescribed game orbits, not a full N-body simulation. Faint rings show celestial orbits; weapon guides still require a pickup.
+- **Neutron stars:** introduced in 2-3, reinforced in 2-6, and orbiting a star in 2-8. Level cards and in-world labels explicitly identify them. Their bright compact cores, magnetic rings and rotating beams distinguish them from planets. Beams reduce thrust/turn; touching the core is lethal.
+- Small-star shading now scales with the star's radius, preventing invalid negative circles. Frozen body snapshots no longer accidentally apply motion twice.
 
 ## Campaign
 
@@ -57,10 +64,12 @@ Automated checks cover the existing physics and platform behavior plus campaign 
 - `tests/`: logic and regression tests
 - `assets/`: editable/local source assets
 - `public/`: files copied into the web build
-- `web-v0.10.0/`: current ready-to-serve build, including the previous build under `legacy-v0.9/`
+- `web-v0.10.1/`: current ready-to-serve build, with previous builds under `legacy-v0.10/` and `legacy-v0.9/`
+- `web-v0.10.0/`: preserved previous campaign build
 - `web-v0.9.0/`: preserved previous web build
 - `Play-Gravity-Duel.html`: standalone offline playtest
 - `Play-Gravity-Duel-v0.9.0.html`: preserved previous offline playtest
-- `PLAYTEST-v0.10.0.txt`: current playtest notes
+- `Play-Gravity-Duel-v0.10.0.html`: preserved previous offline campaign
+- `PLAYTEST-v0.10.1.txt`: current patch notes
 
 The CrazyGames integration can be built with `npm run build:crazygames`. This playtest has not been submitted to CrazyGames.

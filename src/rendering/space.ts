@@ -1,9 +1,16 @@
 import Phaser from 'phaser';
 import { PULSAR_BEAM_HALF_WIDTH, PULSAR_BEAM_LENGTH } from '../config.js';
-import { bodyAt, pulsarAngle, type CelestialBody } from '../entities/CelestialBody.js';
+import { bodyAt, bodyPosition, pulsarAngle, type CelestialBody } from '../entities/CelestialBody.js';
 import { POWERUP_COLORS, type Pickup } from '../entities/PowerUp.js';
 import type { Wormhole } from '../entities/Wormhole.js';
 import { drawBody } from './draw.js';
+export function drawOrbit(g: Phaser.GameObjects.Graphics, body: CelestialBody, time = 0): void {
+  if (!body.motion) return;
+  const center = body.motion.parent ? bodyPosition(body.motion.parent, time) : body;
+  g.lineStyle(1, 0x87b8d1, 0.17).strokeCircle(center.x, center.y, body.motion.radius);
+  g.lineStyle(1, 0x87b8d1, 0.35).lineBetween(center.x - 4, center.y, center.x + 4, center.y)
+    .lineBetween(center.x, center.y - 4, center.x, center.y + 4);
+}
 export function drawCelestial(g: Phaser.GameObjects.Graphics, source: CelestialBody, time = 0): void {
   const body = bodyAt(source, time);
   if (body.type !== 'pulsar') { drawBody(g, body, time); return; }
@@ -18,6 +25,11 @@ export function drawCelestial(g: Phaser.GameObjects.Graphics, source: CelestialB
   }
   g.restore();
   for (let i = 5; i > 0; i--) g.fillStyle(0x8deaff, 0.025).fillCircle(body.x, body.y, body.radius + i * 6);
+  g.save().translateCanvas(body.x, body.y).rotateCanvas(a);
+  g.lineStyle(2, 0x67dcff, 0.5).strokeEllipse(0, 0, body.radius * 3, body.radius * 1.5);
+  g.fillStyle(0xc7faff, 0.75).fillTriangle(body.radius, -8, body.radius + 30, 0, body.radius, 8)
+    .fillTriangle(-body.radius, -8, -body.radius - 30, 0, -body.radius, 8);
+  g.restore();
   g.fillStyle(0x99e7ff).fillCircle(body.x, body.y, body.radius);
   g.fillStyle(0xf5fcff).fillCircle(body.x - 3, body.y - 3, body.radius * 0.7);
 }

@@ -2,31 +2,40 @@ import { createBody, type CelestialBodyType as BodyType, type CelestialBody } fr
 import { portalPair } from '../entities/Wormhole.js';
 import { POWERUP_HELP, type PowerUpType } from '../entities/PowerUp.js';
 import type { GameMap } from './maps.js';
+import { binarySystem, solarFamily, tripleSystem } from './systems.js';
 
 export const UNITS = ['PLANETS & MOONS', 'STELLAR SYSTEMS', 'EVENT HORIZONS'];
 const powers: PowerUpType[] = ['trajectory', 'shield', 'heavy', 'laser', 'homing', 'orbital'];
 const names = [
   ['First Orbit', 'Lunar Shield', 'Heavy Metal', 'Light Speed', 'Tail Chase', 'Orbital Lab', 'Moon Dance', 'Wingmen', 'Lunar Fleet'],
-  ['First Light', 'Binary Suns', 'Neutron Star', 'Solar Family', 'Three Suns', 'Portal Relay', 'Star Dance', 'Solar Patrol', 'Stellar Fleet'],
+  ['First Light', 'Binary Suns', 'Neutron Star', 'Solar Family', 'Three Suns', 'Portal Relay', 'Solar Orbits', 'Neutron Patrol', 'Triple-Star Fleet'],
   ['Into the Well', 'Gravity Gates', 'Twin Horizons', 'Dark Companion', 'Gravity Web', 'Event Relay', 'Moving Wells', 'Void Patrol', 'Final Horizon'],
 ];
 function bodiesFor(unit: number, stage: number): CelestialBody[] {
-  const body = (id: string, type: BodyType, x: number, y: number, radius: number, moving = false) =>
-    createBody(id, type, x, y, { radius, ...(moving ? { motion: { radius: 48, period: 22, phase: -1 } } : {}) });
+  const body = (id: string, type: BodyType, x: number, y: number, radius: number) =>
+    createBody(id, type, x, y, { radius });
   if (unit === 0) return [body('planet', 'planet', 625, 375, 65),
     ...(stage > 0 ? [createBody('moon', 'moon', stage >= 6 ? 625 : 800, stage >= 6 ? 375 : 440,
       { radius: 30, ...(stage >= 6 ? { motion: { radius: 175, period: 26, phase: -1 } } : {}) })] : [])];
   if (unit === 1) {
+    if (stage === 6) return solarFamily();
+    if (stage === 7) return binarySystem({ x: 640, y: 375 }, 'star', 'pulsar', 230, 26, -1, [48, 25]);
+    if (stage === 8) return tripleSystem();
     if (stage === 0) return [body('sun', 'star', 640, 375, 78)];
     if (stage === 2) return [body('neutron', 'pulsar', 640, 375, 25)];
     if (stage === 3) return [body('sun', 'star', 485, 360, 68), body('earth', 'planet', 750, 410, 44), body('moon', 'moon', 860, 440, 22)];
-    const stars = [body('sun-a', 'star', 510, 330, 58, stage >= 6), body('sun-b', 'star', 780, 440, 52, stage >= 6)];
+    const stars = [body('sun-a', 'star', 510, 330, 58), body('sun-b', 'star', 780, 440, 52)];
     if (stage === 4 || stage === 8) stars.push(body('sun-c', 'star', 740, 235, 36));
-    if (stage === 7) stars.push(body('neutron', 'pulsar', 620, 540, 22));
+    if (stage === 5) stars.push(body('neutron', 'pulsar', 640, 540, 25));
     return stars;
   }
-  const wells = [body('hole-a', 'blackHole', 600, 365, 27, stage >= 6)];
-  if (stage >= 2) wells.push(body('hole-b', 'blackHole', 825, 455, 25, stage >= 6));
+  if (stage >= 6) {
+    const pair = binarySystem({ x: 640, y: 375 }, 'blackHole', 'blackHole', 230, 30, -0.5, [27, 27]);
+    if (stage >= 7) pair.push(body('companion', 'planet', 640, 375, 35));
+    return pair;
+  }
+  const wells = [body('hole-a', 'blackHole', 600, 365, 27)];
+  if (stage >= 2) wells.push(body('hole-b', 'blackHole', 825, 455, 25));
   if (stage >= 3) wells.push(body('companion', stage === 3 ? 'star' : 'planet', 775, 235, 40));
   if (stage >= 5) wells.push(body('moon', 'moon', 430, 490, 28));
   return wells;
@@ -39,7 +48,8 @@ export const CAMPAIGN_MAPS: readonly GameMap[] = Array.from({ length: 27 }, (_, 
     ...(stage >= 8 ? [{ x: 1070, y: 600, angle: -2.8 }] : [])] : [];
   const hint = lesson ? POWERUP_HELP[lesson] : unit === 2 && stage === 0 ? 'SHIP GRAVITY IS ON — KEEP THRUSTING TO ESCAPE THE WELL' :
     portals && (stage === 5 || unit === 2 && stage === 1) ? 'PORTALS CARRY SHIPS AND SHOTS — LASERS STAY STRAIGHT' :
-    unit === 1 && stage === 2 ? 'NEUTRON BEAMS JAM YOUR THRUST AND TURN' :
+    unit === 1 && stage === 2 ? 'NEUTRON STAR: ROTATING BEAMS JAM THRUST AND TURN; THE CORE IS LETHAL' :
+    unit === 1 && stage === 7 ? 'ORBITING NEUTRON STAR — WATCH THE MOVING CORE AND ROTATING BEAMS' :
     stage >= 7 ? 'CLEAR THE WHOLE ENEMY SQUAD TO SCORE — STAY MOBILE' :
     stage >= 6 ? 'MOVING GRAVITY WELLS — WATCH THE NEXT POSITION' :
     unit === 1 ? 'STARS ARE LETHAL — YOUR SHIP STILL IGNORES GRAVITY' : 'MULTIPLE GRAVITY WELLS BEND EVERY SHOT';

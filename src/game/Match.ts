@@ -62,7 +62,7 @@ export class Match {
     consumeShot(ship); ship.cooldown = C.FIRE_COOLDOWN;
     if (kind === 'laser') {
       ship.laserCharge = { remaining: C.LASER_CHARGE_TIME, angle: ship.angle };
-      this.events.push({ type: 'mechanic', sound: 'laserCharge', position: { x: ship.x, y: ship.y } });
+      this.events.push({ type: 'mechanic', sound: 'laserCharge', position: { x: ship.x, y: ship.y }, owner: id });
     } else {
       if (kind === 'orbital') {
         const old = owned.filter(b => b.kind === 'orbital');

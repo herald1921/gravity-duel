@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import * as C from '../config.js';
 import { SpaceAI } from '../ai/SpaceAI.js';
 import { difficultyFor } from '../ai/Difficulty.js';
+import { SquadCoordinator } from '../ai/SquadCoordinator.js';
 import { TrajectoryPlanner } from '../ai/TrajectoryPlanner.js';
 import { createProjectile } from '../entities/Bullet.js';
 import { bodyPosition } from '../entities/CelestialBody.js';
@@ -17,7 +18,7 @@ import { getShipAcceleration, simulateTrajectory } from '../physics/gravity.js';
 import { traceLaser } from '../physics/laser.js';
 import { device, isCrazyGames, pause, platform, profile, seenMechanics, sound } from '../platform/runtime.js';
 import { drawBackground, drawShip, drawTrajectory, label, playerColor } from '../rendering/draw.js';
-import { drawCelestial, drawPickup, drawWormhole } from '../rendering/space.js';
+import { drawCelestial, drawOrbit, drawPickup, drawWormhole } from '../rendering/space.js';
 import { GameEffects } from '../rendering/GameEffects.js';
 import { orbitalAlpha, projectileIndicator } from '../rendering/projectileFeedback.js';
 import { GameHUD } from '../ui/GameHUD.js';
@@ -30,12 +31,13 @@ export class GameScene extends Phaser.Scene {
   private match!: Match; private ai!: SpaceAI; private planner?: TrajectoryPlanner; private clock = new FixedClock(); private keys!: Keys; private touch?: TouchControls;
   private debug = C.DEBUG; private visualTime = 0; private previewIn = 0; private pulseIn = 0; private acted = false; private transitioning = false;
   private generation = 0; private onboarding = false; private savedResult = false; private wasJammed = false;
-  private ais: SpaceAI[] = []; private fireGates: OpeningFireGate[] = []; private volleyIn = 0;
+  private ais: SpaceAI[] = []; private fireGates: OpeningFireGate[] = []; private squad?: SquadCoordinator;
   private pendingFire: [boolean, boolean] = [false, false];
   private mouseFire = false; private mouseAim?: {x:number; y:number}; private modern = false;
   private bodies!: Phaser.GameObjects.Graphics; private previews!: Phaser.GameObjects.Graphics;
   private actors!: Phaser.GameObjects.Graphics; private debugGraphics?: Phaser.GameObjects.Graphics;
   private shipLabels: Phaser.GameObjects.Text[] = []; private orbitLabels: Phaser.GameObjects.Text[] = []; private guide!: Phaser.GameObjects.Text;
+  private neutronLabels: { id: string; text: Phaser.GameObjects.Text }[] = [];
   private effects!: GameEffects; private hud!: GameHUD;
   constructor() { super('Game'); }
   init(data: { mode?: GameMode; mapId?: string; arcadeIndex?: number }): void {
@@ -56,13 +58,17 @@ export class GameScene extends Phaser.Scene {
     const difficulty = map.campaignIndex === undefined ? undefined : difficultyFor(map.campaignIndex);
     this.ais = this.match.ships.slice(1).map(() => new SpaceAI(Math.random, this.planner?.request, difficulty));
     this.fireGates = this.ais.map(() => new OpeningFireGate(this.mode === '1p' ? this.arcadeIndex : null, difficulty));
-    this.ai = this.ais[0]; this.ais.forEach(ai => ai.reset()); this.volleyIn = 0; this.clock.reset();
+    this.ai = this.ais[0]; this.ais.forEach(ai => ai.reset());
+    this.squad = this.mode === '1p' && this.ais.length > 1 ? new SquadCoordinator(map.campaignIndex ?? 8) : undefined;
+    this.clock.reset();
     this.debug = C.DEBUG; this.visualTime = 0; this.previewIn = 0; this.pulseIn = 0; this.acted = false;
     pause.set('manual', false); platform.setGameplay(false);
     this.onboarding = !seenMechanics.has(this.mapId); seenMechanics.add(this.mapId);
     drawBackground(this);
     this.bodies = this.add.graphics().setDepth(0); this.previews = this.add.graphics().setDepth(1);
     this.actors = this.add.graphics().setDepth(2);
+    this.neutronLabels = map.bodies.filter(body => body.type === 'pulsar').map(body => ({ id: body.id,
+      text: label(this, 0, 0, 'NEUTRON STAR', 22, '#abf2ff').setOrigin(0.5).setDepth(3).setBackgroundColor('#071726bb').setPadding(5, 2) }));
     if (import.meta.env.DEV) this.debugGraphics = this.add.graphics().setDepth(6);
     this.guide = label(this, 640, 132, this.match.map.hint, 19, '#a5e5df').setOrigin(0.5).setDepth(12)
       .setBackgroundColor('#0b1825cc').setPadding(12, 8);
@@ -98,7 +104,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', focus);
     const onPause = () => {
       this.mouseFire = false;
-      this.ais.forEach(ai => ai.reset()); this.planner?.cancel(); this.fireGates.forEach(gate => gate.reset()); this.volleyIn = 0;
+      this.ais.forEach(ai => ai.reset()); this.planner?.cancel(); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset();
       this.clock.reset(); this.input.keyboard?.resetKeys(); this.touch?.state.clear(); this.pendingFire = [false, false]; this.previewIn = 0;
       if (this.input.keyboard) this.input.keyboard.enabled = !pause.has('ad');
     };
@@ -152,17 +158,24 @@ export class GameScene extends Phaser.Scene {
       const playing = this.match.phase === 'playing';
       this.pendingFire = [false, false]; this.touch?.state.consumeFire();
       if (playing && [first, humanSecond].some(c => c.turn || c.thrust || c.fire || c.move)) this.acted = true;
-      this.volleyIn = Math.max(0, this.volleyIn - C.PHYSICS_DT);
+      if (playing && this.acted) this.squad?.update(C.PHYSICS_DT, this.match.ships.slice(1), this.match.ships[0], this.match.map.bodies, this.match.time, this.match.pickups);
       const enemyControls = this.mode === '2p' ? [humanSecond] : this.ais.map((ai, i) => {
         const ship = this.match.ships[i + 1];
         if (!playing || !this.acted || !ship.alive) return IDLE_CONTROL;
         const control = ai.update(C.PHYSICS_DT, ship, this.match.ships[0], this.match.map.bodies,
-          { time: this.match.time, wormholes: this.match.map.wormholes }, this.match.pickups, this.match.bullets, this.match.ships.slice(1));
-        control.fire = this.fireGates[i].step(C.PHYSICS_DT, control.fire && this.volleyIn <= 0,
-          ship.cooldown <= 1e-9 && !ship.laserCharge && this.match.bullets.filter(b => b.ownerId === ship.id).length < C.MAX_BULLETS_PER_SHIP);
-        if (control.fire) this.volleyIn = 0.4;
+          { time: this.match.time, wormholes: this.match.map.wormholes }, this.match.pickups, this.match.bullets, this.match.ships.slice(1), this.squad?.orders.get(ship.id));
         return control;
       });
+      if (this.mode === '1p' && playing && this.acted) {
+        const ready = this.match.ships.slice(1).map(ship => ship.alive && ship.cooldown <= 1e-9 && !ship.laserCharge &&
+          this.match.bullets.filter(b => b.ownerId === ship.id).length < C.MAX_BULLETS_PER_SHIP);
+        const candidates = this.match.ships.slice(1).filter((_, i) => ready[i] && enemyControls[i].fire).map(ship => ship.id);
+        const shooter = this.squad?.selectShooter(candidates, this.match.time) ?? (this.squad ? null : candidates[0]);
+        enemyControls.forEach((control, i) => {
+          if (!this.match.ships[i + 1].alive) return;
+          control.fire = this.fireGates[i].step(C.PHYSICS_DT, control.fire && shooter === this.match.ships[i + 1].id, Boolean(ready[i]));
+        });
+      }
       if (!playing || this.acted) this.match.step([first, ...enemyControls]);
       if (!this.savedResult && this.match.phase === 'matchOver') {
         this.savedResult = true;
@@ -188,6 +201,7 @@ export class GameScene extends Phaser.Scene {
   private processEvents(): void {
     for (const event of this.match.drainEvents()) {
       if (event.type === 'shot') {
+        if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time);
         sound.play(event.kind === 'homing' ? 'missileFire' : event.kind === 'orbital' ? 'orbitalFire' : 'shot'); this.effects.flash(event.position, playerColor(event.owner));
       } else if (event.type === 'impact') {
         sound.play('impact'); this.effects.burst(event.position, 0xf4c476, event.kind === 'homing' ? 18 : 6);
@@ -208,9 +222,10 @@ export class GameScene extends Phaser.Scene {
         if (this.match.draw && event.victim === 1) sound.play('draw');
         sound.play('death'); this.effects.flash(event.position, playerColor(event.victim), true);
         if (!device.touch) this.cameras.main.shake(120, 0.002, false);
-      } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.volleyIn = 0; this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
-      else if (event.type === 'laser') { sound.play('laserFire'); this.effects.burst(event.position, 0xffcf70, 12); }
+      } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset(); this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
+      else if (event.type === 'laser') { if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time); sound.play('laserFire'); this.effects.burst(event.position, 0xffcf70, 12); }
       else if (event.type === 'mechanic') {
+        if (event.sound === 'laserCharge' && event.owner && event.owner > 1) this.squad?.reserveShot(event.owner, this.match.time);
         sound.play(event.sound);
         if (event.pickupType) this.hud.announce((event.owner === 1 ? (this.mode === '1p' ? '' : 'P1 · ') : this.mode === '1p' ? 'AI · ' : 'P2 · ') +
           POWERUP_NAMES[event.pickupType] + (event.pickupType === 'shield' ? ' ACTIVE' : ' READY'), '#' + POWERUP_COLORS[event.pickupType].toString(16));
@@ -224,7 +239,12 @@ export class GameScene extends Phaser.Scene {
     const t = this.match.time, g = this.actors.clear();
     this.guide.setVisible(this.onboarding && this.match.time < C.ONBOARDING_TIME && !pause.paused);
     this.bodies.clear();
+    for (const body of this.match.map.bodies) drawOrbit(this.bodies, body, t);
     for (const body of this.match.map.bodies) drawCelestial(this.bodies, body, t);
+    for (const entry of this.neutronLabels) {
+      const body = this.match.map.bodies.find(b => b.id === entry.id)!, p = bodyPosition(body, t);
+      entry.text.setPosition(p.x, p.y - body.radius - 27).setVisible(!pause.paused);
+    }
     for (const gate of this.match.map.wormholes ?? []) drawWormhole(this.bodies, gate, t);
     for (const pickup of this.match.pickups) drawPickup(g, pickup, t);
     if (this.previewIn <= 0) {
@@ -275,7 +295,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.match.ships.forEach((ship, i) => {
-      this.shipLabels[i].setText(ship.jammedFor > 0 ? 'JAMMED' : this.mode === '1p' ? ship.id===1?'YOU':'RIVAL' : 'P' + ship.id)
+      this.shipLabels[i].setText(ship.jammedFor > 0 ? 'JAMMED' : this.mode === '1p' ? ship.id===1?'YOU':this.squad?.orders.get(ship.id)?.role ?? 'RIVAL' : 'P' + ship.id)
         .setPosition(ship.x, Math.min(C.ARENA_BOUNDS.bottom-8, ship.y + 42)).setVisible(ship.alive && !pause.paused);
       if (!ship.alive) return;
       if (lockedTargets.has(ship.id)) {

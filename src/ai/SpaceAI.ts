@@ -8,6 +8,7 @@ import { traceLaser } from '../physics/laser.js';
 import type { AimPlanner } from './TrajectoryPlanner.js';
 import type { Difficulty } from './Difficulty.js';
 import type { Bullet } from '../entities/Bullet.js';
+import type { SquadOrder } from './SquadCoordinator.js';
 export interface AimSolution { angle: number; distance: number; trajectory: Trajectory }
 export function findAimSolution(self: Launcher & CollisionTarget, target: CollisionTarget,
   bodies: readonly CelestialBody[], context: SpaceContext = {}, weapon: SpecialShot | 'normal' = 'normal'): AimSolution {
@@ -45,7 +46,7 @@ export class SpaceAI {
     this.solution = null; this.targetPoint = null; this.decisionIn = 0; this.planAge = 0;
     this.phaseTime = AI_AIM_SECONDS; this.moving = false; this.side = this.random() > 0.5 ? 1 : -1;
   }
-  update(dt: number, self: Ship, target: Ship, bodies: readonly CelestialBody[], context: SpaceContext = {}, pickups: readonly Pickup[] = [], bullets: readonly Bullet[] = [], allies: readonly Ship[] = []): ShipControl {
+  update(dt: number, self: Ship, target: Ship, bodies: readonly CelestialBody[], context: SpaceContext = {}, pickups: readonly Pickup[] = [], bullets: readonly Bullet[] = [], allies: readonly Ship[] = [], order?: SquadOrder): ShipControl {
     if (!self.alive || !target.alive) return { turn: 0, thrust: 0, fire: false };
     this.decisionIn -= dt; this.phaseTime -= dt; this.planAge += dt;
     const weapon = self.specialShot ?? 'normal';
@@ -73,7 +74,7 @@ export class SpaceAI {
       else accept(findAimSolution(self, predicted, bodies, context, weapon));
     }
     const current = bodies.map(body => bodyAt(body, (context.time ?? 0) + 0.5));
-    const navigation = this.navigation(self, target, current, pickups, context.time ?? 0, bullets, allies);
+    const navigation = this.navigation(self, target, current, pickups, context.time ?? 0, bullets, allies, order);
     const moving = !self.laserCharge && (this.moving || navigation.urgent);
     const independent = this.difficulty?.independentAim === true;
     const error = angleDifference(moving && !independent ? navigation.angle : this.goalAngle, self.angle);
@@ -86,12 +87,22 @@ export class SpaceAI {
     return independent ? { turn: 0, thrust: 0, fire, independentAim: true, aim: this.goalAngle,
       move: moving ? { x: Math.cos(navigation.angle), y: Math.sin(navigation.angle) } : { x: 0, y: 0 } } : { turn, thrust, fire };
   }
-  private navigation(self: Ship, target: Ship, bodies: readonly CelestialBody[], pickups: readonly Pickup[], time: number, bullets: readonly Bullet[], allies: readonly Ship[]): { angle: number; urgent: boolean } {
+  private navigation(self: Ship, target: Ship, bodies: readonly CelestialBody[], pickups: readonly Pickup[], time: number, bullets: readonly Bullet[], allies: readonly Ship[], order?: SquadOrder): { angle: number; urgent: boolean } {
     const dx = target.x - self.x, dy = target.y - self.y, distance = Math.max(1, Math.hypot(dx, dy));
     const radial = Math.max(-1, Math.min(1, (distance - AI_PREFERRED_DISTANCE) / 180));
     let x = dx / distance * radial - dy / distance * this.side * 0.7, y = dy / distance * radial + dx / distance * this.side * 0.7;
     let urgent = false;
-    const nearby = pickups.filter(p => Math.hypot(p.x - self.x, p.y - self.y) < 360 && !bodies.some(body =>
+    if (order) {
+      const wx = order.waypoint.x - self.x, wy = order.waypoint.y - self.y, d = Math.max(1, Math.hypot(wx, wy));
+      x = wx / d * Math.min(2, d / 90); y = wy / d * Math.min(2, d / 90);
+      urgent = order.advance && d > 75;
+      // Follow a consistent side of an obstruction instead of pushing straight into it.
+      for (const body of bodies) if (segmentCircleContact(self, order.waypoint, { ...body, radius: body.collisionRadius + self.radius + 45 }) !== null) {
+        const bx = self.x - body.x, by = self.y - body.y, length = Math.max(1, Math.hypot(bx, by));
+        x += -by / length * order.side * 2; y += bx / length * order.side * 2;
+      }
+    }
+    const nearby = pickups.filter(p => (!order || p.id === order.pickupId) && Math.hypot(p.x - self.x, p.y - self.y) < 390 && !bodies.some(body =>
       segmentCircleContact(self, p, { x: body.x, y: body.y, radius: body.collisionRadius + self.radius + 30 }) !== null ||
       inPulsarBeam(p, { ...body, motion: undefined }, time)))
       .sort((a, b) => Math.hypot(a.x - self.x, a.y - self.y) - Math.hypot(b.x - self.x, b.y - self.y))[0];

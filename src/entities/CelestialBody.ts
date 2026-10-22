@@ -1,10 +1,12 @@
 import * as C from '../config.js';
 export type CelestialBodyType = 'planet' | 'moon' | 'star' | 'blackHole' | 'pulsar';
+export interface OrbitAnchor { x: number; y: number; motion?: OrbitMotion }
+export interface OrbitMotion { radius: number; period: number; phase: number; parent?: OrbitAnchor }
 export interface CelestialBody {
   id: string; type: CelestialBodyType; x: number; y: number;
   radius: number; collisionRadius: number; gravityStrength: number; softening: number; lethal: boolean;
   orbitCaptureRadius?: number;
-  motion?: { radius: number; period: number; phase: number };
+  motion?: OrbitMotion;
   beamPhase?: number;
 }
 const defaults = {
@@ -21,17 +23,20 @@ export function createBody(id: string, type: CelestialBodyType, x: number, y: nu
   return { ...body, collisionRadius, orbitCaptureRadius: overrides.orbitCaptureRadius ??
     (type === 'planet' || type === 'moon' ? collisionRadius + (type === 'moon' ? C.MOON_CAPTURE_PADDING : C.ORBIT_CAPTURE_PADDING) : undefined) };
 }
-export function bodyPosition(body: CelestialBody, time = 0): { x: number; y: number } {
-  if (!body.motion) return body;
+export function bodyPosition(body: OrbitAnchor, time = 0): { x: number; y: number } {
+  if (!body.motion) return { x: body.x, y: body.y };
   const angle = body.motion.phase + time * Math.PI * 2 / body.motion.period;
-  return { x: body.x + body.motion.radius * Math.cos(angle), y: body.y + body.motion.radius * Math.sin(angle) };
+  const center = body.motion.parent ? bodyPosition(body.motion.parent, time) : body;
+  return { x: center.x + body.motion.radius * Math.cos(angle), y: center.y + body.motion.radius * Math.sin(angle) };
 }
-export function bodyVelocity(body: CelestialBody, time: number): { x: number; y: number } {
+export function bodyVelocity(body: OrbitAnchor, time: number): { x: number; y: number } {
   if (!body.motion) return { x: 0, y: 0 };
   const w = Math.PI * 2 / body.motion.period, a = body.motion.phase + w * time;
-  return { x: -body.motion.radius * w * Math.sin(a), y: body.motion.radius * w * Math.cos(a) };
+  const parent = body.motion.parent ? bodyVelocity(body.motion.parent, time) : { x: 0, y: 0 };
+  return { x: parent.x - body.motion.radius * w * Math.sin(a), y: parent.y + body.motion.radius * w * Math.cos(a) };
 }
-export function bodyAt(body: CelestialBody, time: number): CelestialBody { return { ...body, ...bodyPosition(body, time) }; }
+/** A frozen snapshot must not apply its original orbit a second time. */
+export function bodyAt(body: CelestialBody, time: number): CelestialBody { return { ...body, ...bodyPosition(body, time), motion: undefined }; }
 export function pulsarAngle(body: CelestialBody, time: number): number { return (body.beamPhase ?? 0) + C.PULSAR_ROTATION_SPEED * time; }
 export function inPulsarBeam(point: { x: number; y: number; radius: number }, body: CelestialBody, time: number): boolean {
   if (body.type !== 'pulsar') return false;
