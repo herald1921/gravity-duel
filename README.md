@@ -1,10 +1,17 @@
 # Gravity Duel
 
-**Play online:** [v0.11.0 campaign](https://herald1921.github.io/gravity-duel/) · [previous v0.10.1](https://herald1921.github.io/gravity-duel/legacy-v0.10.1/) · [v0.10](https://herald1921.github.io/gravity-duel/legacy-v0.10/) · [v0.9](https://herald1921.github.io/gravity-duel/legacy-v0.9/)
+**Play online:** [v0.11.1 campaign](https://herald1921.github.io/gravity-duel/) · [previous v0.11.0](https://herald1921.github.io/gravity-duel/legacy-v0.11.0/) · [v0.10.1](https://herald1921.github.io/gravity-duel/legacy-v0.10.1/) · [v0.10](https://herald1921.github.io/gravity-duel/legacy-v0.10/) · [v0.9](https://herald1921.github.io/gravity-duel/legacy-v0.9/)
 
 Gravity Duel is a browser arcade game built with Phaser and TypeScript. Move through compact orbital arenas, aim independently, and bend projectiles around planets to defeat an AI rival.
 
-This repository contains the `v0.11.0` campaign playtest: 27 distinct arenas across units of 6, 9 and 12 levels. Each unit ends with a three-way free-for-all followed by a harder two-AI squad battle. Previous source tags, web builds and standalone HTML files are retained. Completed levels migrate by their retained identity; new combinations remain uncleared, and old saves are untouched.
+This repository contains the `v0.11.1` campaign playtest: 27 distinct arenas across units of 6, 9 and 12 levels. Each unit ends with a three-way free-for-all followed by a harder two-AI squad battle. Previous source tags, web builds and standalone HTML files are retained. Completed levels migrate by their retained identity; new combinations remain uncleared, and old saves are untouched.
+
+## v0.11.1 changes
+
+- **Orbital tactics:** AI evaluates planet/moon captures and a future orbital arc, then deploys a persistent threat near the enemy or across a contested approach lane. It checks its actual launch heading again before shooting and avoids its returning orbital rounds. Moving hosts use the same future positions and projectile physics as live play. A new round still replaces the pilot's previous orbital round under the existing one-round limit.
+- **Other pickups:** heavy shells use their slower speed for bounded lead and prefer closer combat; homing launches check nearby obstructions; laser pilots sidestep blocked lines, settle before charging and predict the charge delay from delayed observations. Shielded pilots prefer a closer attack range while retaining hazard avoidance. Guidance temporarily reduces aim error and improves prediction, then expires normally. Pilots avoid deliberately overwriting held ammunition or collecting redundant buffs; squads also reserve guidance pickups.
+- **Continuous difficulty:** only unit one's six lessons use the beginner ramp. Unit two begins with pickup seeking, dodging, movement prediction and independent aiming already active. Reaction, precision and firing cadence then continue improving through unit three without resetting. Existing firing warnings and squad spacing still apply.
+- **Compatibility:** the 27 layouts, 6/9/12 sequence, late-unit FFA/squad battles and v0.11.0 campaign saves are retained. Previous builds and offline files remain available.
 
 ## v0.11.0 changes
 
@@ -23,7 +30,7 @@ This repository contains the `v0.11.0` campaign playtest: 27 distinct arenas acr
 
 Every unit's penultimate level is a three-way battle and its final level is a coordinated two-AI squad. In squad battles, clear both enemies to score; enemy teammates cannot damage each other. In free-for-all, every rival is a valid target and the last survivor scores. Returning shots can hit their owner in either mode. Campaign levels unlock sequentially. **CAMPAIGN → PRACTICE ALL** opens every level without advancing the campaign save.
 
-Reaction time decreases from 1.35 to 0.32 seconds, angular error from ±11 to ±1.4 degrees, and minimum firing interval from 3.8 to 1.15 seconds. Pickup seeking, bounded velocity prediction, projectile avoidance, squad separation and independent movement/aiming unlock gradually. Enemies use the same trajectory simulation as players, and squad shots are spaced by at least 0.4 seconds.
+Reaction time decreases from 1.35 to 0.32 seconds, angular error from ±11 to ±1.4 degrees, and minimum firing interval from 3.8 to 1.15 seconds. The first six lessons introduce these skills; from 2-1 onward all tactics are active. At 2-1 reaction time is 0.65 seconds, aim error is ±3.8 degrees and firing interval is 2.3 seconds, then all three improve further. Enemies use the same trajectory simulation as players, and squad shots are spaced by at least 0.4 seconds.
 
 Trajectory previews are automatic in flight school and otherwise require a 12-second GUIDANCE pickup. It coexists with shields and special ammo. Homing guidance is reduced to 3.6 seconds with slower turning; orbital rounds last up to 48 seconds, unless intercepted, replaced or destroyed. The mouse crosshair has been removed.
 
@@ -66,7 +73,8 @@ Automated checks cover physics/platform behavior, distinct layouts, 6/9/12 progr
 - `tests/`: logic and regression tests
 - `assets/`: editable/local source assets
 - `public/`: files copied into the web build
-- `web-v0.11.0/`: current ready-to-serve build, with prior versions under `legacy-v0.10.1/`, `legacy-v0.10/` and `legacy-v0.9/`
+- `web-v0.11.1/`: current ready-to-serve build, with prior versions under `legacy-v0.11.0/`, `legacy-v0.10.1/`, `legacy-v0.10/` and `legacy-v0.9/`
+- `web-v0.11.0/`: preserved previous 27-arena build
 - `web-v0.10.1/`: preserved previous squad/trajectory build
 - `web-v0.10.0/`: preserved previous campaign build
 - `web-v0.9.0/`: preserved previous web build
@@ -74,6 +82,7 @@ Automated checks cover physics/platform behavior, distinct layouts, 6/9/12 progr
 - `Play-Gravity-Duel-v0.9.0.html`: preserved previous offline playtest
 - `Play-Gravity-Duel-v0.10.0.html`: preserved previous offline campaign
 - `Play-Gravity-Duel-v0.10.1.html`: preserved previous offline patch
-- `PLAYTEST-v0.11.0.txt`: current patch notes
+- `Play-Gravity-Duel-v0.11.0.html`: preserved previous offline campaign
+- `PLAYTEST-v0.11.1.txt`: current patch notes
 
 The CrazyGames integration can be built with `npm run build:crazygames`. This playtest has not been submitted to CrazyGames.

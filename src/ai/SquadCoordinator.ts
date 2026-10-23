@@ -4,6 +4,7 @@ import { bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialB
 import type { Pickup } from '../entities/PowerUp.js';
 import { segmentCircleContact, type Vec2 } from '../physics/gravity.js';
 import { difficultyFor } from './Difficulty.js';
+import { wantsPickup } from './PickupTactics.js';
 
 export type SquadRole = 'PRESSURE' | 'FLANK' | 'INTERCEPT';
 export interface SquadOrder {
@@ -57,9 +58,8 @@ export class SquadCoordinator {
     // Reserve resources centrally: partners never chase the same pickup.
     const reserved = new Set<PlayerId>();
     for (const pickup of pickups) {
-      if (pickup.type === 'trajectory') continue;
       const candidates = living.filter(s => !reserved.has(s.id) && s.id !== this.pressureId &&
-        (pickup.type === 'shield' ? !s.shield : !s.specialShot) &&
+        wantsPickup(s, pickup.type) &&
         Math.hypot(s.x - pickup.x, s.y - pickup.y) < 390 && !current.some(b =>
           segmentCircleContact(s, pickup, { ...b, radius: b.collisionRadius + s.radius + 20 }) !== null || inPulsarBeam(pickup, b, time + 0.6)))
         .sort((a, b) => Math.hypot(a.x - pickup.x, a.y - pickup.y) - Math.hypot(b.x - pickup.x, b.y - pickup.y));

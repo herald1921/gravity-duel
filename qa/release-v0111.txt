@@ -1,0 +1,8 @@
+v0.11.1 validation
+TypeScript: passed.
+Logic/regression suite: 170 tests passed; 0 failed.
+New coverage: useful orbital deployment, live capture and physics parity for moving hosts, obsolete launch rejection, real firing gates for all four ammo types, laser flanking, heavy lead, homing obstruction check, guidance activation/expiry, shield range, pickup reservations, own-orbit avoidance, no difficulty reset.
+60-second squad audit: pressure-v0111.log. Pressure shots: 16 (1-6), 9 while squad active (2-9), 16 (3-12); surviving solo AI recorded separately.
+Local browser: v0.11.1 menu and 6/9/12 selector loaded, 2-1 combat ran, AI moved/fired/scored. No browser errors observed.
+Web asset references verified for current and all retained legacy index pages.
+Human difficulty balance and physical-phone behavior remain for playtesting.
