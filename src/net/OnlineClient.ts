@@ -15,7 +15,7 @@ export class OnlineClient {
   private lastInput=new Map<PlayerId,number>();private inputAt=new Map<PlayerId,number>();private round=0;private epoch=0;
   private relayIssue='';
   private visible=()=>this.send({type:'visibility',visible:!document.hidden});
-  constructor(private endpoint:string,private initial:Record<string,unknown>){document.addEventListener('visibilitychange',this.visible);this.connect();}
+  constructor(private endpoint:string,private initial:Record<string,unknown>,private roomChanged?:(room:Room|null)=>void){document.addEventListener('visibilitychange',this.visible);this.connect();}
   subscribe(fn:()=>void):()=>void {this.listeners.add(fn);return()=>this.listeners.delete(fn);}
   private notify():void{this.listeners.forEach(fn=>fn());}
   get healthy():boolean{return this.connected&&(!this.room?.started||performance.now()-this.receivedAt<1500);}
@@ -38,7 +38,7 @@ export class OnlineClient {
       this.notify();
     }catch{this.status='Invalid server response';this.notify();}};
     ws.onerror=()=>{this.status='Connection failed. The free server may be waking up.';this.notify();};
-    ws.onclose=()=>{this.connected=false;clearInterval(this.ping);this.stopHost();this.closeLinks();this.epoch=0;if(this.stopped)return;
+    ws.onclose=()=>{this.connected=false;this.roomChanged?.(null);clearInterval(this.ping);this.stopHost();this.closeLinks();this.epoch=0;if(this.stopped)return;
       this.status='Connection lost · retrying…';this.notify();
       if(++this.attempts<=10)this.retry=setTimeout(()=>this.connect(),Math.min(5000,1000*this.attempts));
       else{this.status='Unable to connect. Return to the lobby and retry.';this.notify();}
@@ -47,7 +47,7 @@ export class OnlineClient {
   private closeLinks():void {for(const link of this.links.values())link.close();this.links.clear();}
   private stopHost():void {this.runtime=undefined;this.planner?.destroy();this.planner=undefined;this.accumulator=0;}
   private updateRoom(room:Room):void {
-    this.room=room;
+    this.room=room;this.roomChanged?.(room);
     if(!room.started){this.status=room.countdown!==null?'Starting in '+room.countdown+'…':'Waiting for another player…';return;}
     if(room.epoch!==this.epoch||room.round!==this.round){
       const sameRound=room.round===this.round;this.stopHost();if(room.epoch!==this.epoch)this.closeLinks();this.lastInput.clear();this.inputAt.clear();this.lastState=-1;
@@ -116,7 +116,7 @@ export class OnlineClient {
   }
   send(value:unknown):void {if(this.ws?.readyState===WebSocket.OPEN&&this.ws.bufferedAmount<256000)this.ws.send(JSON.stringify(value));}
   input(control:ShipControl):void{if(!this.connected||!this.room?.started)return;const input=boundedInput(control);if(this.runtime)this.runtime.input(this.id,input);else this.transmit(this.room.host,this.packet('input',{control:input}));}
-  close():void{this.stopped=true;clearTimeout(this.retry);clearInterval(this.ping);document.removeEventListener('visibilitychange',this.visible);this.send({type:'leave'});this.ws?.close();this.stopHost();this.closeLinks();this.listeners.clear();}
+  close():void{this.stopped=true;this.roomChanged?.(null);this.roomChanged=undefined;clearTimeout(this.retry);clearInterval(this.ping);document.removeEventListener('visibilitychange',this.visible);this.send({type:'leave'});this.ws?.close();this.stopHost();this.closeLinks();this.listeners.clear();}
 }
 export async function onlineEndpoint():Promise<string|null>{
   if(import.meta.env.DEV && ['127.0.0.1','localhost'].includes(location.hostname))return 'ws://'+location.hostname+':8787';

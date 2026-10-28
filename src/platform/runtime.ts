@@ -2,8 +2,10 @@ import { PauseState, PokiLifecycle, type PokiSDK } from './Lifecycle.js';
 import { Sound } from '../rendering/Sound.js';
 import { Profile } from './Profile.js';
 import { CrazyGamesLifecycle, within, type CrazySDK } from './CrazyGames.js';
+import { CrazyMultiplayer } from './CrazyMultiplayer.js';
 const isPlaytest = import.meta.env.VITE_GAME_PLATFORM === 'playtest';
 export const isCrazyGames = import.meta.env.VITE_GAME_PLATFORM === 'crazygames';
+export const multiplayer = new CrazyMultiplayer();
 const unavailableStorage = () => { throw new Error('Platform save unavailable'); };
 export const profile = new Profile(isCrazyGames ? unavailableStorage : undefined);
 export const pause = new PauseState();
@@ -25,6 +27,7 @@ export async function initializePlatform(): Promise<void> {
     }
     if (host.CrazyGames?.SDK && await platform.attach(host.CrazyGames.SDK) && platform.storage) {
       const storage = platform.storage;
+      multiplayer.attach(host.CrazyGames.SDK.game);
       profile.useStorage(() => storage);
       sound.enabled = profile.data.sfx; sound.musicEnabled = profile.data.music;
     }
@@ -68,6 +71,6 @@ export function installPlatform(): () => void {
     window.visualViewport?.removeEventListener('resize', orientation);
     continueButton?.removeEventListener('click', continueInPortrait);
     document.removeEventListener('visibilitychange', hidden); document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock);
-    platform.destroy(); sound.destroy();
+    multiplayer.destroy(); platform.destroy(); sound.destroy();
   };
 }

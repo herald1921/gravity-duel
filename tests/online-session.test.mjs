@@ -9,6 +9,13 @@ class FakeWorker {postMessage(){}terminate(){}}
 const doc=new EventTarget();doc.hidden=false;globalThis.document=doc;globalThis.WebSocket=FakeSocket;globalThis.RTCPeerConnection=FakePeer;globalThis.Worker=FakeWorker;
 const room={type:'room',code:'TEST0001',mode:'ffa',mapId:'unit-1-5',started:true,owner:1,host:1,epoch:1,round:1,countdown:null,players:[1,2,3,4].map(id=>({id,connected:true,visible:true}))};
 const input=(seq,move=1,round=1)=>({type:'input',seq,epoch:1,round,control:{turn:0,thrust:0,fire:false,move:{x:move,y:0},independentAim:true}});
+
+test('platform room status follows connection and old closed sockets cannot clear a replacement room',()=>{
+ const states=[];const client=new OnlineClient('ws://unit-test',{},r=>states.push(r?.code??null));
+ client.updateRoom({...room,started:false});assert.deepEqual(states,['TEST0001']);
+ client.close();assert.deepEqual(states,['TEST0001',null]);
+ client.ws.onclose();assert.deepEqual(states,['TEST0001',null]);
+});
 test('player host ignores stale controls, keeps direct links on rematch, and restores a migration checkpoint',()=>{
  const client=new OnlineClient('ws://unit-test',{});client.connected=true;client.updateRoom(structuredClone(room));
  try{

@@ -1,0 +1,29 @@
+{
+  "version": "0.12.7",
+  "title": "Gravity Duel: Orbital Combat",
+  "submitted": false,
+  "changes": [
+    "CrazyGames platform invitations, room status, join listener and Instant Multiplayer",
+    "SDK loading lifecycle notifications",
+    "Public broker allows the verified CrazyGames game origin"
+  ],
+  "automatedTests": {
+    "passed": 207,
+    "failed": 0,
+    "log": "qa/v0127-tests.txt"
+  },
+  "humanPhoneRetest": "v0.12.4 firing fix confirmed by user; touch controls unchanged",
+  "platformMultiplayer": "awaiting upload and browser QA",
+  "zipSha256": "11d47780d66f636f32f9770163bf0e61c18e0662236577bb8e7529c38cbe1ed9",
+  "files": [
+    "assets/AimWorker-D8akK1Du.js",
+    "assets/index-BQF_q5C7.js",
+    "assets/index-ZLqlIcld.css",
+    "assets/outer-space-loop-BhrVQT7j.mp3",
+    "assets/phaser-DFK5Ua9d.js",
+    "favicon.svg",
+    "index.html",
+    "online.json",
+    "THIRD-PARTY-NOTICES.txt"
+  ]
+}

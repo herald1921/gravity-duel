@@ -1,11 +1,13 @@
 import { PauseState } from './Lifecycle.js';
 import type { StorageLike } from './Profile.js';
+import type { MultiplayerAPI } from './CrazyMultiplayer.js';
 
 export interface CrazySDK {
   init(): Promise<void>;
   environment: 'local' | 'crazygames' | 'disabled';
   data: StorageLike;
-  game: {
+  game: MultiplayerAPI & {
+    loadingStart?(): void; loadingStop?(): void;
     gameplayStart(): void; gameplayStop(): void;
     settings: { muteAudio?: boolean };
     addSettingsChangeListener(listener: (settings: { muteAudio?: boolean }) => void): void;
@@ -39,11 +41,13 @@ export class CrazyGamesLifecycle {
       if (this.destroyed || sdk.environment === 'disabled') return false;
       this.settingsListener(sdk.game.settings);
       sdk.game.addSettingsChangeListener(this.settingsListener);
-      this.sdk = sdk; this.sync(); return true;
+      this.sdk = sdk;
+      try{sdk.game.loadingStart?.();if(this.ready)sdk.game.loadingStop?.();}catch{}
+      this.sync(); return true;
     } catch { return false; }
   }
   get storage(): StorageLike | undefined { return this.sdk?.data; }
-  markGameReady(): void { this.ready = true; this.sync(); }
+  markGameReady(): void { if(!this.ready)try{this.sdk?.game.loadingStop?.();}catch{}this.ready = true; this.sync(); }
   setGameplay(value: boolean): void { this.wantsGameplay = value; this.sync(); }
   private sync(): void {
     if (!this.sdk || !this.ready) return;

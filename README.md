@@ -1,4 +1,4 @@
-# Gravity Duel: Orbital Combat — v0.12.6 playtest
+# Gravity Duel: Orbital Combat — v0.12.7 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
 Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
@@ -61,7 +61,7 @@ The included `render.yaml` defines one **free** Render Node service with a healt
 3. Set `public/online.json` to `{"endpoint":"wss://YOUR-ASSIGNED-HOST.onrender.com"}` using the actual assigned hostname, then rebuild and publish the client.
 4. Verify a friend room and a random match from two devices on different networks. The local browser checks do not replace this cross-network acceptance test.
 
-`ALLOWED_ORIGINS` is restricted to the GitHub Pages origin in the deployment template. Add the actual platform iframe origin only when integrating a published CrazyGames build. CrazyGames hosts game files and provides invite/room SDK hooks, but developers provide the real-time multiplayer backend: https://docs.crazygames.com/faq/#do-you-provide-a-server-for-multiplayer-games . The online lobby currently uses its own share links; CrazyGames-specific invite integration remains a platform-release task.
+`ALLOWED_ORIGINS` is restricted to the GitHub Pages origin in the deployment template. Add the actual platform iframe origin only when integrating a published CrazyGames build. CrazyGames hosts game files and provides invite/room SDK hooks, but developers provide the real-time multiplayer backend: https://docs.crazygames.com/faq/#do-you-provide-a-server-for-multiplayer-games . The online lobby currently uses its own share links; The CrazyGames build reports room availability, routes platform invitations directly into the invited lobby, creates a private room for Instant Multiplayer, and generates platform invite links. Full or started rooms cannot be joined; rematches retain the room.
 
 A Dockerfile is also included for another Node-capable host. Never place service credentials in the client config or repository.
 

@@ -6,7 +6,7 @@ import { TutorialScene } from './scenes/TutorialScene.js';
 import { HangarScene } from './scenes/HangarScene.js';
 import { MenuScene } from './scenes/MenuScene.js';
 import { MapSelectScene } from './scenes/MapSelectScene.js';
-import { installPlatform, pause, platform, sound, profile, initializePlatform } from './platform/runtime.js';
+import { installPlatform, pause, platform, sound, profile, initializePlatform,multiplayer } from './platform/runtime.js';
 import './style.css';
 const cleanup = installPlatform();
 async function boot(): Promise<void> {
@@ -20,10 +20,15 @@ const game = new Phaser.Game({
   callbacks: { postBoot: instance => {
     document.getElementById('loading')?.remove();
     instance.canvas.tabIndex = 0;
+    const stopInvites=multiplayer.onJoin(code=>{
+      for(const scene of instance.scene.getScenes(true))instance.scene.stop(scene.sys.settings.key);
+      instance.scene.start('OnlineLobby',{joinCode:code});
+    });
+    instance.events.once(Phaser.Core.Events.DESTROY,stopInvites);
     instance.events.on(Phaser.Core.Events.PRE_RENDER, () => {
       for (const scene of instance.scene.getScenes(true)) scene.cameras.main.setZoom(2).centerOn(WORLD.width/2,WORLD.height/2);
     });
-    instance.canvas.setAttribute('aria-label', 'Gravity Duel: Orbital Combat v0.12.6. Three units, 30 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims; release to fire.');
+    instance.canvas.setAttribute('aria-label', 'Gravity Duel: Orbital Combat v0.12.7. Three units, 30 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims; release to fire.');
     instance.events.once(Phaser.Core.Events.DESTROY, cleanup);
   } }, banner: false,
 });

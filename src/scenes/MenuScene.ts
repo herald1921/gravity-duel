@@ -3,13 +3,13 @@ import { MAPS } from '../maps/maps.js';
 import { drawBackground,drawBody,drawShip,label } from '../rendering/draw.js';
 import { bindMenuKeys } from '../ui/menu.js';
 import { button,soundButton } from '../ui/widgets.js';
-import { device,pause,platform,profile,sound } from '../platform/runtime.js';
+import { device,pause,platform,profile,sound,multiplayer } from '../platform/runtime.js';
 export class MenuScene extends Phaser.Scene {
   private art!:Phaser.GameObjects.Graphics; private seconds=0;
   constructor(){super('Menu');}
   create():void {
     platform.setGameplay(false);drawBackground(this);this.seconds=0;
-    label(this,64,44,'ORBITAL COMBAT  / 0.12.6',22,'#70e9d4');
+    label(this,64,44,'ORBITAL COMBAT  / 0.12.7',22,'#70e9d4');
     this.add.text(60,102,'GRAVITY\nDUEL',{resolution:2,fontFamily:'Arial',fontSize:'82px',fontStyle:'bold',color:'#f0f6ff',lineSpacing:-13});
     label(this,65,294,'A little gravity. A perfect shot.',26,'#b8cbdf');
     const saved=profile.data.runIndex;
@@ -28,7 +28,9 @@ export class MenuScene extends Phaser.Scene {
     if(!profile.persistent)label(this,932,687,'Progress lasts only this visit.',22,'#ffce83').setOrigin(.5);
     bindMenuKeys(this,key=>{if(pause.paused)return;if(key==='Enter'||key==='Space')this.startRun(saved??0);});
     platform.markGameReady();
-    if(new URLSearchParams(location.search).has('room')){history.replaceState(null,'',location.pathname+location.search);this.scene.start('OnlineLobby');}
+    const launch=multiplayer.takeLaunch();
+    if(launch)this.scene.start('OnlineLobby',launch);
+    else if(new URLSearchParams(location.search).has('room'))this.scene.start('OnlineLobby');
   }
   update(_t:number,dt:number):void {
     if(pause.paused)return;this.seconds+=Math.min(dt,50)/1000;

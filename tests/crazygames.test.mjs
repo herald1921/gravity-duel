@@ -12,6 +12,12 @@ function fixture(overrides = {}) {
    addSettingsChangeListener:l=>listeners.add(l),removeSettingsChangeListener:l=>listeners.delete(l)},...overrides};
  return {sdk,events,values,listeners};
 }
+
+test('loading completes once when the menu is ready, separately from starting gameplay',async()=>{
+ const f=fixture(),loading=[];f.sdk.game.loadingStart=()=>loading.push('loading');f.sdk.game.loadingStop=()=>loading.push('ready');
+ const life=new CrazyGamesLifecycle(new PauseState());await life.attach(f.sdk);life.markGameReady();life.markGameReady();
+ assert.deepEqual(loading,['loading','ready']);assert.deepEqual(f.events,[]);life.destroy();
+});
 test('CrazyGames reports playable state once, ignores focus changes, respects real pause and menus',async()=>{
  const {sdk,events}=fixture(),pause=new PauseState(),life=new CrazyGamesLifecycle(pause);
  life.markGameReady();life.setGameplay(true);assert.equal(await life.attach(sdk),true);

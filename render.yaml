@@ -10,7 +10,7 @@ services:
       - key: NODE_VERSION
         value: 22.22.0
       - key: ALLOWED_ORIGINS
-        value: https://herald1921.github.io
+        value: https://herald1921.github.io,https://gravity-duel-orbital-combat.game-files.crazygames.com
       - key: MAX_ROOMS
         value: 1000
       - key: MAX_RELAY_ROOMS
