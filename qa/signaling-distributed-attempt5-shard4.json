@@ -1,0 +1,54 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "status": "FAILED",
+  "preparedRooms": 250,
+  "rampSamples": [
+    {
+      "elapsedSeconds": 69.109,
+      "ok": true,
+      "version": "0.12.1",
+      "architecture": "peer-hosted",
+      "rooms": 440,
+      "active": 430,
+      "peers": 1760,
+      "cpuSeconds": 2.632771,
+      "uptime": 146.839366369,
+      "rssMB": 87,
+      "outboundBytes": 6730076,
+      "inboundBytes": 5068604,
+      "relayBytes": 0,
+      "relayDailyLimitMB": 32
+    },
+    {
+      "elapsedSeconds": 130.971,
+      "ok": true,
+      "version": "0.12.1",
+      "architecture": "peer-hosted",
+      "rooms": 850,
+      "active": 835,
+      "peers": 3385,
+      "cpuSeconds": 5.155338,
+      "uptime": 208.735918147,
+      "rssMB": 96,
+      "outboundBytes": 13124322,
+      "inboundBytes": 10153517,
+      "relayBytes": 0,
+      "relayDailyLimitMB": 32
+    }
+  ],
+  "closeSamples": [
+    {
+      "code": 1006,
+      "reason": "",
+      "role": "guest",
+      "ageSeconds": 104.707
+    }
+  ],
+  "closeCodes": {
+    "1006": 1
+  },
+  "applicationKeepaliveSeconds": 20,
+  "connectRetries": 0,
+  "failures": 1,
+  "error": "Error: Distributed room barrier failed"
+}

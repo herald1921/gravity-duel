@@ -1,0 +1,85 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "trafficScope": "JSON application bytes only; excludes WebSocket framing, heartbeat control frames, TLS, HTTP and handshake overhead",
+  "location": "local workstation",
+  "runner": "local",
+  "generatedAt": "2026-10-28T12:27:25.009Z",
+  "applicationKeepaliveSeconds": 20,
+  "shard": "single",
+  "totalTarget": 10,
+  "closeSamples": [
+    {
+      "code": 1006,
+      "reason": "",
+      "role": "guest",
+      "ageSeconds": 1.077
+    },
+    {
+      "code": 1006,
+      "reason": "",
+      "role": "guest",
+      "ageSeconds": 1.079
+    },
+    {
+      "code": 1006,
+      "reason": "",
+      "role": "guest",
+      "ageSeconds": 1.081
+    },
+    {
+      "code": 1006,
+      "reason": "",
+      "role": "host",
+      "ageSeconds": 1.113
+    }
+  ],
+  "closeCodes": {
+    "1006": 4
+  },
+  "rooms": 10,
+  "playersPerRoom": 4,
+  "rampSeconds": 2.29,
+  "rampSamples": [],
+  "durationSeconds": 6.023,
+  "activeAtEnd": 10,
+  "connectionsAtEnd": 40,
+  "connectRetries": 0,
+  "disconnects": 4,
+  "recovered": 4,
+  "unrecovered": 0,
+  "recoverySeconds": [
+    0.014,
+    0.014,
+    0.013,
+    0.013
+  ],
+  "maxRecoverySeconds": 0.014,
+  "acceptance": "all rooms and seats retained, no unrecovered connection, each recovery <= 10 seconds",
+  "hostMigrations": 3,
+  "signalPackets": 60,
+  "pingSamples": 1,
+  "pingMs": {
+    "p50": 0,
+    "p95": 0,
+    "p99": 0,
+    "max": 0
+  },
+  "cpuCores": 0.005312966959986718,
+  "rssMB": 53,
+  "brokerOutboundMBPerHour": 0.021517516187946208,
+  "health": {
+    "ok": true,
+    "version": "0.12.1",
+    "architecture": "peer-hosted",
+    "rooms": 10,
+    "active": 10,
+    "peers": 40,
+    "cpuSeconds": 0.234,
+    "uptime": 8.2781383,
+    "rssMB": 53,
+    "outboundBytes": 165558,
+    "inboundBytes": 116020,
+    "relayBytes": 0,
+    "relayDailyLimitMB": 32
+  }
+}
