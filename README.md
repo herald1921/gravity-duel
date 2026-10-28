@@ -1,4 +1,4 @@
-# Gravity Duel — v0.12.5 playtest
+# Gravity Duel: Orbital Combat — v0.12.6 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
 Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/

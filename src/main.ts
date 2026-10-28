@@ -23,7 +23,7 @@ const game = new Phaser.Game({
     instance.events.on(Phaser.Core.Events.PRE_RENDER, () => {
       for (const scene of instance.scene.getScenes(true)) scene.cameras.main.setZoom(2).centerOn(WORLD.width/2,WORLD.height/2);
     });
-    instance.canvas.setAttribute('aria-label', 'Gravity Duel v0.12.5. Three units, 30 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims; release to fire.');
+    instance.canvas.setAttribute('aria-label', 'Gravity Duel: Orbital Combat v0.12.6. Three units, 30 levels. WASD to move, mouse to aim and fire. Touch: left stick moves, right stick aims; release to fire.');
     instance.events.once(Phaser.Core.Events.DESTROY, cleanup);
   } }, banner: false,
 });

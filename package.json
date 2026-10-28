@@ -1,17 +1,17 @@
 {
   "name": "gravity-duel-playtest",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5176",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build --outDir web-v0.12.5",
+    "build": "tsc --noEmit && vite build --outDir web-v0.12.6",
     "build:offline": "node build-offline.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "tsc -p tsconfig.test.json && node --test tests/*.test.mjs",
     "dev:crazygames": "vite --mode crazygames --host 127.0.0.1 --port 5175",
-    "build:crazygames": "tsc --noEmit && vite build --mode crazygames --outDir crazygames-v0.12.5",
+    "build:crazygames": "tsc --noEmit && vite build --mode crazygames --outDir crazygames-v0.12.6",
     "build:server": "tsc -p tsconfig.server.json",
     "start:server": "node server/index.mjs",
     "test:server": "npm run build:server && node tests/server-smoke.mjs && node tests/server-reconnect-burst.mjs"

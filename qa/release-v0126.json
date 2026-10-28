@@ -1,0 +1,27 @@
+{
+  "version": "0.12.6",
+  "submitted": false,
+  "changes": [
+    "Title and version labels updated after user approved subtitle; gameplay unchanged from tested v0.12.5"
+  ],
+  "automatedTests": {
+    "passed": 201,
+    "failed": 0,
+    "testedGameplayVersion": "0.12.5"
+  },
+  "humanPhoneRetest": "v0.12.4 controls confirmed fixed by user; controls unchanged in v0.12.5",
+  "platformMultiplayer": "pending",
+  "zipSha256": "71032a602e737b2949a5389288774ad57f57ee78ef4eed7d6edb379df006da45",
+  "files": [
+    "favicon.svg",
+    "index.html",
+    "online.json",
+    "THIRD-PARTY-NOTICES.txt",
+    "assets/AimWorker-D8akK1Du.js",
+    "assets/index-RJvbIk-Z.js",
+    "assets/index-ZLqlIcld.css",
+    "assets/outer-space-loop-BhrVQT7j.mp3",
+    "assets/phaser-DFK5Ua9d.js"
+  ],
+  "title": "Gravity Duel: Orbital Combat"
+}
