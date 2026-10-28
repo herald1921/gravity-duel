@@ -24,7 +24,7 @@ export class OnlineClient {
     if(this.stopped)return;
     const ws=this.ws=new WebSocket(this.endpoint);
     ws.onopen=()=>{this.connected=true;this.attempts=0;this.status='Connected';this.send(this.token?{type:'resume',token:this.token}:{...this.initial,desktop:!matchMedia('(pointer:coarse)').matches});this.visible();
-      clearInterval(this.ping);this.ping=setInterval(()=>{if(!this.room?.started)this.send({type:'ping',time:Date.now()});},20000);this.notify();};
+      clearInterval(this.ping);this.ping=setInterval(()=>{this.send(this.room?.started?{type:'alive'}:{type:'ping',time:Date.now()});},20000);this.notify();};
     ws.onmessage=event=>{try{const msg=JSON.parse(event.data);
       if(msg.type==='joined'){this.id=msg.id;this.token=msg.token;}
       if(msg.type==='room')this.updateRoom(msg);

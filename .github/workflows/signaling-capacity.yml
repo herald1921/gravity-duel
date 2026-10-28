@@ -11,28 +11,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  capacity:
+  preflight:
     if: github.repository == 'herald1921/gravity-duel'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 3
+    steps:
+      - name: Warm service and require an empty test window
+        run: |
+          node --input-type=module -e "const h=await(await fetch('https://gravity-duel-online.onrender.com/health',{signal:AbortSignal.timeout(90000)})).json(); console.log(h); if(h.peers||h.rooms)throw Error('Service has live rooms. Retry in an empty test window.');"
+  capacity:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      CAPACITY_REPORT_DIR: qa/capacity-run
+      CAPACITY_TOTAL_ROOMS: '1000'
+      CAPACITY_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - run: npm ci --prefix server --omit=dev
-      - name: Warm service and require an empty test window
-        run: |
-          node --input-type=module -e "const h=await(await fetch('https://gravity-duel-online.onrender.com/health',{signal:AbortSignal.timeout(90000)})).json(); console.log(h); if(h.peers||h.rooms)throw Error('Service has live rooms. Retry in an empty test window.');"
-      - name: Hold 1000 four-player signaling rooms for ten minutes
-        run: node server/benchmark-signaling.mjs 1000 600 wss://gravity-duel-online.onrender.com
+      - name: Hold 250 rooms per runner after all 1000 rooms are ready
+        run: node server/benchmark-signaling.mjs 250 600 wss://gravity-duel-online.onrender.com
       - name: Preserve capacity report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: signaling-capacity-report
-          path: |
-            qa/signaling-1000-public.json
-            qa/signaling-1000-public-failed.json
+          name: signaling-capacity-shard-${{ matrix.shard }}
+          path: qa/capacity-run/*.json
           retention-days: 7
           if-no-files-found: warn

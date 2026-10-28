@@ -41,3 +41,10 @@ test('host without WebRTC can publish through the bounded relay fallback',()=>{
   assert.equal(client.waiting,false);assert.ok(states.every(m=>m.epoch===1&&m.round===1));
  }finally{client.close();globalThis.RTCPeerConnection=original;}
 });
+
+test('active direct matches keep the signaling socket alive without server echo traffic',()=>{
+ const original=globalThis.setInterval,originalMedia=globalThis.matchMedia;let heartbeat;globalThis.setInterval=(fn,ms)=>{heartbeat=fn;return original(fn,ms);};globalThis.matchMedia=()=>({matches:false});
+ const client=new OnlineClient('ws://unit-test',{}),sent=[];client.send=m=>sent.push(m);
+ try{client.ws.onopen();client.room=structuredClone(room);heartbeat();assert.deepEqual(sent.at(-1),{type:'alive'});client.room=undefined;heartbeat();assert.equal(sent.at(-1).type,'ping');}
+ finally{client.close();globalThis.setInterval=original;globalThis.matchMedia=originalMedia;}
+});

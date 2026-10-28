@@ -1,0 +1,29 @@
+Gravity Duel v0.12.1 — current verification ledger
+
+Completed:
+- TypeScript: no errors.
+- Full regression suite including the new session cases: 188 passed (qa/v0121-tests.txt).
+- Online-session tests: 4 passed; stale input/round rejection, direct-link reuse on rematch, checkpoint takeover, readiness wait, background pilot AI replacement, and bounded relay publication when WebRTC is unavailable, and application keepalive during direct matches.
+- Server smoke: friend/random rooms, signaling isolation, host-only state relay, stale epochs, reconnect, visibility/exit election, relay room cap and daily byte cap passed.
+- Local signaling soak: 1,000 started rooms / 4,000 sockets for 602 seconds; no disconnects or unexpected host changes; 95 MB RSS and approximately 0.041 CPU cores.
+- Public signaling: 10 and 100 started rooms passed 30-second holds, no disconnects.
+- Public 1,000-room attempt 2 was interrupted at the user's pause during ramp after at least 200 rooms. No full-capacity result.
+- Public 1,000-room attempt 1 FAILED during ramp after at least 300 prepared rooms: TLS ECONNRESET. Preserved in signaling-1000-public-attempt1.json. No capacity pass claimed.
+- Real public browser session: three independent browser tabs on this workstation, actual WebRTC DIRECT channels, original host closed during a match, remaining peers took over and preserved score/progress, new owner could rematch, direct gameplay resumed, no warning/error console logs observed.
+- Local touch-mode browser: right-stick release produced a shot/reloading; existing dual-stick cancellation tests passed.
+- All 27 online arenas checked for initial spawn/core overlap: none.
+- Static current/legacy page asset references: 7 pages, 28 references, none missing.
+- v0.11.1 standalone SHA-256 unchanged: 75BC65EC9DB8D643FE0E17A0953B51F625F62DBB255885EA4DA8016888DF26D6.
+
+Further verification on 2026-10-28:
+- Public attempt 3 from workstation failed at 309 prepared rooms: 16 connection retries, 2 established connection failures, TLS ECONNRESET. See signaling-1000-public-attempt3.json.
+- Public attempt 4 from GitHub Actions reached 1,000 started rooms, but only 3,310 sockets remained and 690 disconnects had occurred. Cancelled after this failure; NOT a pass. Run https://github.com/herald1921/gravity-duel/actions/runs/40683406290 ; partial logs in public-capacity-attempt4.txt.
+- Reconnect regression reproduced 4 rejected returning players before the admission fix; all 24 returned to six full rooms after the fix.
+- Published cf7f26a checked via actual asset index-CQzkgcPK.js. Two public browser clients matched randomly, connected DIRECT and finished one FFA match; no warnings/errors recorded. Same workstation/network, not a physical multi-device test.
+
+Important boundaries:
+- Signaling load tests do NOT run 1,000 live WebRTC game simulations. Their room counts are not a claim of 1,000 stable real matches.
+- The public browser clients above are on one workstation/network. Separate physical phones, different networks/NATs, sustained low-end host performance, packet loss and distributed 1,000-match gameplay remain unverified.
+- JSON byte counters exclude protocol/TLS/HTTP overhead; limits on relay traffic are protective, not a Render billing cap. Counters reset on server restart.
+- Render Free can sleep/restart and has monthly usage allowances. With a payment card, overages may be billed.
+- Online endpoint: wss://gravity-duel-online.onrender.com. Current free service code: 3aef22f.

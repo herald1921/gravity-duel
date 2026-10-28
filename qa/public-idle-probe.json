@@ -1,0 +1,34 @@
+{
+  "purpose": "Compare protocol pong only with application alive every 20 seconds; no gameplay",
+  "durationSeconds": 365.444,
+  "records": [
+    {
+      "mode": "control-only",
+      "openedAt": 1.449,
+      "closedAt": null,
+      "code": null,
+      "reason": null
+    },
+    {
+      "mode": "app-alive",
+      "openedAt": 2.7,
+      "closedAt": null,
+      "code": null,
+      "reason": null
+    },
+    {
+      "mode": "control-only",
+      "openedAt": 3.908,
+      "closedAt": null,
+      "code": null,
+      "reason": null
+    },
+    {
+      "mode": "app-alive",
+      "openedAt": 5.32,
+      "closedAt": null,
+      "code": null,
+      "reason": null
+    }
+  ]
+}

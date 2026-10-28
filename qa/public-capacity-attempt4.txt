@@ -1,0 +1,118 @@
+capacity
+cancelled  in 10m 16s
+Set up job
+1s
+Run actions/checkout@v4
+2s
+Run actions/setup-node@v4
+1s
+Run npm ci --prefix server --omit=dev
+0s
+Warm service and require an empty test window
+1s
+Hold 1000 four-player signaling rooms for ten minutes
+10m 8s
+1
+Run node server/benchmark-signaling.mjs 1000 600 wss://gravity-duel-online.onrender.com
+
+4
+Prepared 100 rooms / 400 sockets; retries=0; failures=0; rss=80 MB
+
+5
+Prepared 200 rooms / 800 sockets; retries=0; failures=0; rss=83 MB
+
+6
+Prepared 300 rooms / 1200 sockets; retries=0; failures=0; rss=85 MB
+
+7
+Prepared 400 rooms / 1600 sockets; retries=0; failures=0; rss=89 MB
+
+8
+Prepared 500 rooms / 2000 sockets; retries=0; failures=0; rss=91 MB
+
+9
+Prepared 600 rooms / 2392 sockets; retries=0; failures=8; rss=93 MB
+
+10
+Prepared 900 rooms / 3143 sockets; retries=0; failures=457; rss=96 MB
+
+13
+Prepared 1000 rooms / 3310 sockets; retries=1; failures=690; rss=100 MB
+
+14
+Holding 1000 active rooms: 30 s
+
+15
+Error: The operation was canceled.
+Preserve capacity report
+0s
+1
+Run actions/upload-artifact@v4
+
+12
+  
+
+12
+(node:2625) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+
+13
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+14
+Multiple search paths detected. Calculating the least common ancestor of all paths
+
+15
+The least common ancestor is /home/runner/work/gravity-duel/gravity-duel/qa. This will be the root directory of the artifact
+
+16
+Warning: No files were found with the provided path: qa/signaling-1000-public.json
+
+17
+qa/signaling-1000-public-failed.json. No artifacts will be uploaded.
+Post Run actions/setup-node@v4
+0s
+Post Run actions/checkout@v4
+0s
+1
+Post job cleanup.
+
+2
+/usr/bin/git version
+
+3
+git version 2.55.0
+
+4
+Temporarily overriding HOME='/home/runner/work/_temp/65d4636f-8c33-4aba-a48f-4f171149cd29' before making global git config changes
+
+5
+Adding repository directory to the temporary git global config as a safe directory
+
+6
+/usr/bin/git config --global --add safe.directory /home/runner/work/gravity-duel/gravity-duel
+
+7
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+
+8
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+
+9
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+
+10
+http.https://github.com/.extraheader
+
+11
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+
+12
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+
+13
+/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+
+14
+/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Complete job
+0s

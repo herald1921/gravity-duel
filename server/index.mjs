@@ -25,6 +25,7 @@ wss.on('connection',ws=>{
   inbound+=raw.length;if(Date.now()-p.window>1000){p.window=Date.now();p.messages=0;p.bytes=0;}p.bytes+=raw.length;
   if(++p.messages>160||p.bytes>1600000){ws.close(1008,'Rate limit');return;}
   const msg=JSON.parse(raw);if(!msg||typeof msg!=='object')return;p.lastSeen=Date.now();const r=p.room;
+  if(msg.type==='alive')return; // Application-level keepalive, no response or gameplay relay.
   if(msg.type==='ping'){send(p,{type:'pong',time:msg.time});return;}
   if(msg.type==='visibility'){p.visible=msg.visible===true;if(r?.started){const host=r.peers.find(q=>q.id===r.host);if(!host?.visible)elect(r);broadcast(r,state(r));}return;}
   if(msg.type==='hostPulse'){if(r&&r.host===p.id)r.hostPulse=Date.now();return;}
