@@ -28,7 +28,7 @@ export class GameHUD {
     label(scene, 32, 23, match.map.name, 24).setDepth(11);
     label(scene, 32, 60, online ? (match.map.teams?'ONLINE · 2 vs 2':'ONLINE · FOUR-WAY') : arcadeIndex === null ? 'FREE PLAY' : 'UNIT ' + (match.map.unitIndex!+1) + ' · ' + (match.map.stageIndex!+1) + '/' + match.map.unitLength, 22, '#9ab5ce').setDepth(11);
     this.score = label(scene, 640, 23, '', match.freeForAll ? 18 : 26).setOrigin(0.5, 0).setDepth(11);
-    this.rule = label(scene, 640, 65, match.boss ? 'BREAK THE CORE' : 'FIRST TO ' + match.targetScore, 18, '#a4b6c7').setOrigin(0.5, 0).setDepth(11);
+    this.rule = label(scene, 640, 65, match.boss ? 'BREAK THE CORE' : match.freeForAll ? 'LAST SURVIVOR +1 · FIRST TO ' + match.targetScore : 'FIRST TO ' + match.targetScore, 18, '#a4b6c7').setOrigin(0.5, 0).setDepth(11);
     this.loadouts = [label(scene, 290, 23, '', 21, '#77eee3'), label(scene, 850, 23, '', 21, '#ff9189')];
     this.loadouts.forEach(t => t.setDepth(11));
     this.bars = scene.add.graphics().setDepth(11);

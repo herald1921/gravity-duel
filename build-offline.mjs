@@ -8,7 +8,7 @@ const read = file => readFile(path.join(root, file), 'utf8');
 const bundleOptions = { absWorkingDir: root, bundle: true, write: false, minify: true,
   format: 'iife', platform: 'browser', target: 'es2020', legalComments: 'inline' };
 const worker = (await build({ ...bundleOptions, entryPoints: ['src/ai/AimWorker.ts'] })).outputFiles[0].text;
-const music = 'data:audio/mpeg;base64,' + (await readFile(path.join(root, 'assets/audio/135136-loop.mp3'))).toString('base64');
+const music = 'data:audio/mpeg;base64,' + (await readFile(path.join(root, 'assets/audio/outer-space-loop.mp3'))).toString('base64');
 function replaceExactlyOnce(source, before, after) {
   if (source.split(before).length !== 2) throw new Error('Offline build source changed: ' + before);
   return source.replace(before, () => after);
@@ -26,7 +26,7 @@ const result = await build({ ...bundleOptions, entryPoints: ['src/main.ts'],
     }));
     builder.onLoad({ filter: /rendering[\\/]Music\.ts$/ }, async args => ({ loader: 'ts',
       contents: replaceExactlyOnce(await readFile(args.path, 'utf8'),
-        "new URL('../../assets/audio/135136-loop.mp3', import.meta.url).href", JSON.stringify(music))
+        "new URL('../../assets/audio/outer-space-loop.mp3', import.meta.url).href", JSON.stringify(music))
     }));
   } }]
 });

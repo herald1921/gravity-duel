@@ -147,7 +147,7 @@ export const CAMPAIGN_MAPS: readonly GameMap[] = Array.from({ length: 30 }, (_, 
   const wormholes = boss ? (unit === 2 ? portalPair([350, 190, 0.7], [940, 575, -2.4]) : undefined) : portalsFor(unit, layout);
   const bodies = boss ? bossBodies(unit) : bodiesFor(unit, layout);
   const extraEnemySpawns = freeForAll ? [{ x: 1100, y: 585, angle: Math.PI }, { x: 170, y: 185, angle: 0.35 }] : squad ? [{ x: 1100, y: 585, angle: Math.PI }] : [];
-  const hint = freeForAll ? 'FOUR PILOTS — SCORE KILLS, RESPAWN, FIRST TO 4; 90 SECOND LIMIT' : lessons ? lessonHints[stage] : unit === 2 && stage === 0 ? 'SHIP GRAVITY IS ON — KEEP THRUSTING TO ESCAPE THE WELL' :
+  const hint = freeForAll ? 'FOUR PILOTS — NO RESPAWNS; LAST SURVIVOR +1; FIRST TO 3 ROUNDS' : lessons ? lessonHints[stage] : unit === 2 && stage === 0 ? 'SHIP GRAVITY IS ON — KEEP THRUSTING TO ESCAPE THE WELL' :
     wormholes && stage === 1 ? 'WORMHOLES CONNECT DISTANT SPACE — SHIPS AND SHOTS CAN CROSS; LASERS CANNOT' :
     unit === 1 && stage === 2 ? 'NEUTRON STAR: ROTATING BEAMS JAM THRUST AND TURN; THE CORE IS LETHAL' :
     boss ? 'BOSS: DODGE THE WARNING VOLLEY — STRIKE DURING RECOVERY' : squad ? 'OUTMANEUVER TWO COORDINATED ENEMIES' :
@@ -156,7 +156,7 @@ export const CAMPAIGN_MAPS: readonly GameMap[] = Array.from({ length: 30 }, (_, 
   return {
     id: `unit-${unit + 1}-${stage + 1}`, name: boss ? ['Orbital Warden', 'Solar Dreadnought', 'Event Sovereign'][unit] : names[unit][layout], description: boss ? ['A lunar shield ring surrounds the four-cannon warden.', 'A drifting sun and neutron sentry protect the dreadnought.', 'Two wells frame a wormhole route behind the sovereign.'][unit] : tactics[unit][layout], hint,
     campaignIndex: index, unitIndex: unit, stageIndex: stage, unitLength, legacyIndex: legacy, lesson, lessons, shipGravity: unit === 2 ? 'all' : 'none',
-    combat: freeForAll ? 'freeForAll' : 'squad', ...(freeForAll ? { scoreMode: 'kills' as const } : {}), ...(boss ? { boss: unit as 0 | 1 | 2 } : {}),
+    combat: freeForAll ? 'freeForAll' : 'squad', ...(boss ? { boss: unit as 0 | 1 | 2 } : {}),
     player1Spawn: { x: 170, y: boss ? 555 : [555, 555, 590, 385, 580, 555, 555, 555, 555, 555, 555, 555][layout], angle: layout === 3 ? 0 : -0.35 },
     player2Spawn: { x: 1070, y: boss ? 185 : [185, 220, 190, 385, 200, 185, 185, 185, 185, 185, 185, 185][layout], angle: layout === 3 ? Math.PI : 2.8 },
     extraEnemySpawns, bodies,

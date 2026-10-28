@@ -12,16 +12,40 @@ test('every unit preserves 1v2 and appends a distinct boss after four-way FFA',(
  assert.equal(new Match(ffa).ships.length,4);assert.equal(new Match(squad).ships.length,3);assert.equal(squad.boss,undefined);
  assert.equal(boss.boss,u);assert.equal(new Match(boss).ships.length,2);assert.notDeepEqual(boss.bodies,squad.bodies);}
 });
-test('mutual AI kills grant no player score and both pilots respawn',()=>{
- const m=new Match({...CAMPAIGN_MAPS[4],bodies:[],powerUps:[]});m.phase='playing';
- m.resolveDeaths([{victim:2,owner:3,cause:'shot'},{victim:3,owner:2,cause:'shot'}]);
- assert.equal(m.scores[1],0);assert.equal(m.scores[2],1);assert.equal(m.scores[3],1);assert.equal(m.winner,null);assert.equal(m.phase,'playing');
- for(let i=0;i<218;i++)m.step(idle);assert.ok(m.ships[1].alive&&m.ships[2].alive);assert.ok(m.ships[1].invulnerableFor>0);
+test('four-way AI mutual kills eliminate pilots without points or mid-round respawns',()=>{
+ for (const map of CAMPAIGN_MAPS.filter(m=>m.combat==='freeForAll')) {
+  const m=new Match({...map,bodies:[],wormholes:[],powerUps:[]});m.phase='playing';
+  assert.equal(m.deathmatch,false);assert.equal(m.targetScore,3);
+  m.resolveDeaths([{victim:2,owner:3,cause:'shot'},{victim:3,owner:2,cause:'shot'}]);
+  assert.deepEqual(m.scores,{1:0,2:0,3:0,4:0});assert.equal(m.phase,'playing');
+  for(let i=0;i<300;i++)m.step(idle);
+  assert.equal(m.ships[1].alive,false);assert.equal(m.ships[2].alive,false);
+  m.resolveDeaths([{victim:4,owner:1,cause:'shot'}]);
+  assert.equal(m.roundWinner,1);assert.deepEqual(m.scores,{1:1,2:0,3:0,4:0});
+  for(let i=0;i<180;i++)m.step(idle);
+  assert.ok(m.ships.every(s=>s.alive));assert.equal(m.scores[1],1);
+ }
 });
-test('kill race has a time limit, tied overtime, self-kill exclusion and a genuine winner',()=>{
- const m=new Match(CAMPAIGN_MAPS[4]);m.phase='playing';m.time=90;m.finishDeathmatch();assert.equal(m.phase,'playing');
- m.resolveDeaths([{victim:1,owner:1,cause:'self'}]);assert.equal(m.scores[1],0);
- m.resolveDeaths([{victim:4,owner:2,cause:'shot'}]);m.finishDeathmatch();assert.equal(m.winner,2);
+test('last survivor scores even without firing; simultaneous total wipe never scores',()=>{
+ const m=new Match(CAMPAIGN_MAPS[4]);m.phase='playing';
+ m.resolveDeaths([{victim:2,owner:3,cause:'shot'},{victim:3,owner:4,cause:'shot'},{victim:4,owner:2,cause:'shot'}]);
+ assert.equal(m.roundWinner,1);assert.equal(m.scores[1],1);
+ m.respawn();m.phase='playing';m.resolveDeaths(m.ships.map(s=>({victim:s.id,cause:'hazard'})));
+ assert.equal(m.draw,true);assert.equal(m.roundWinner,null);assert.deepEqual(m.scores,{1:1,2:0,3:0,4:0});
+});
+test('online FFA keeps eliminated humans out and awards the final AI; three rounds win',()=>{
+ const r=new OnlineRuntime('unit-1-5','ffa'),m=r.match;
+ assert.equal(m.deathmatch,false);assert.equal(m.targetScore,3);
+ for(let round=0;round<3;round++){
+  if(round)m.respawn();m.phase='playing';
+  m.resolveDeaths([{victim:1,cause:'shot',owner:2}]);
+  for(let i=0;i<250;i++)m.step(idle);
+  assert.equal(m.ships[0].alive,false);assert.equal(m.phase,'playing');
+  m.resolveDeaths([{victim:2,cause:'shot',owner:3},{victim:4,cause:'shot',owner:3}]);
+  assert.equal(m.roundWinner,3);assert.equal(m.scores[3],round+1);
+ }
+ assert.equal(m.phase,'matchOver');assert.equal(m.winner,3);
+ m.rematch();assert.ok(m.ships.every(s=>s.alive));assert.deepEqual(m.scores,{1:0,2:0,3:0,4:0});
 });
 test('boss telegraphs before firing, is vulnerable only during recovery, and ignores own fire',()=>{
  for(const map of CAMPAIGN_MAPS.filter(m=>m.boss!==undefined)){

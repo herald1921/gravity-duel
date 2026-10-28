@@ -1,7 +1,7 @@
-# Gravity Duel — v0.12.1 playtest
+# Gravity Duel — v0.12.2 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
-Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.11.1/
+Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.1/
 
 ## Campaign and controls
 
@@ -10,7 +10,7 @@ Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.11.1/
 - Unit 1: planets and moons only; no ship gravity. The first three static lessons introduce all six pickups, then motion begins. Four-way FFA is 1-5, squad is 1-6, boss is 1-7.
 - Unit 2: stars and neutron stars, followed by moving binary/triple and hierarchical systems; no wormholes or ship gravity. FFA 2-8, squad 2-9, boss 2-10.
 - Unit 3: black holes and ship gravity; wormholes from 3-2. FFA 3-11, squad 3-12, boss 3-13.
-- FFA: player plus three mutually hostile AI, first to four kills, 90-second limit, tied overtime. Killed pilots respawn after 1.8 seconds with protection that ends when they shoot. AI mutual kills never grant the player points.
+- FFA: four independent pilots; no respawns within a round. The last survivor earns one point, first to three round wins. A simultaneous total wipe is a draw with no points. Eliminated humans spectate until the next round. AI spreads pressure toward unattended opponents, avoids prolonged target fixation and avoids adding a third attacker when another rival is available. Humans and AI use identical targeting criteria; no participation requirement is imposed on the survivor. This reduces, but cannot eliminate, occasional wins without firing.
 - Bosses: four/six/eight-cannon patterns, visible warnings, locked aim before firing, recovery windows, 3/4/5 core health. Later bosses alternate lasers. Bosses ignore their own projectiles; normal pilots still risk returning fire. The player starts with a shield.
 - AI: beginner ramp only in the first unit; later units retain full tactics. Movement candidates are projected through the same ship physics, moving-body collisions, gravity, neutron beams and wormholes used in live combat. Existing pickup strategies and coordinated squad pressure remain.
 - Desktop: WASD movement, mouse aim, click/Space fire. P/Esc pause, R retry. Classic controls remain selectable on desktop.
@@ -25,7 +25,7 @@ Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to t
 
 The same WebSocket service supports computer and phone, random matching and friend room codes/invite links. At least two connected humans are needed; empty seats are AI. Up to four humans can join before starting. Two modes:
 
-- Four-way free-for-all: two humans plus two AI (or three/four humans), kill scoring and respawns.
+- Four-way free-for-all: two humans plus two AI (or three/four humans), last-survivor round scoring and no mid-round respawns.
 - 2 vs 2: P1 + P2 versus P3 + P4. With two humans, they cooperate against two AI. First team to three rounds; ally projectiles cannot hit teammates. Every original arena is available; no multiplayer bosses.
 
 A foreground player device hosts the complete physics, collisions, pickups, AI and scoring. Desktop devices are preferred. Guests send bounded controls over a reliable WebRTC data channel; the host sends state at 20 Hz on an unordered channel, with interpolation and reconstructed trails. AI retains the full trajectory search in a worker. Gameplay normally bypasses the server entirely. The server handles room codes, random matching, signaling, liveness and host election. No camera or microphone permission is used.
@@ -75,14 +75,18 @@ npm run build:offline
 npm run build:crazygames
 ```
 
-Tests cover the shared physics, all unique layouts and safe spawn routes, ordered mechanics, pickup tactics, coordinated firing, four-way scoring and respawns, additional bosses, team rules, save migration and touch release/cancel behavior. The server smoke test checks friend/random rooms, signaling isolation, host-only state relay, stale epoch rejection, relay limits and host migration. A separate reconnect-burst test verifies that 24 players can return simultaneously to six full rooms without retained seats blocking live-connection admission. Active clients send a small application keepalive every 20 seconds; gameplay remains peer-to-peer. Core continuation tests verify exact physics and pickup-state preservation after takeover; input tests reject invalid controls. Browser QA covers desktop and phone-size layouts and controls; physical-device multitouch, internet latency and extended human balance testing remain necessary.
+Tests cover the shared physics, all unique layouts and safe spawn routes, ordered mechanics, pickup tactics, coordinated firing, four-way elimination, draws, full-round resets and fair AI target rotation, additional bosses, team rules, save migration and touch release/cancel behavior. The server smoke test checks friend/random rooms, signaling isolation, host-only state relay, stale epoch rejection, relay limits and host migration. A separate reconnect-burst test verifies that 24 players can return simultaneously to six full rooms without retained seats blocking live-connection admission. Active clients send a small application keepalive every 20 seconds; gameplay remains peer-to-peer. Core continuation tests verify exact physics and pickup-state preservation after takeover; input tests reject invalid controls. Browser QA covers desktop and phone-size layouts and controls; physical-device multitouch, internet latency and extended human balance testing remain necessary.
 
 - `src/`, `tests/`, `server/`: editable source, regression coverage and signaling service.
-- `web-v0.12.1/`: current static build; previous releases under `legacy-*`.
-- `web-v0.12.0/`, `web-v0.11.1/` and earlier version folders: preserved builds.
+- `web-v0.12.2/`: current static build; previous releases under `legacy-*`.
+- `web-v0.12.1/`, `web-v0.12.0/`, `web-v0.11.1/` and earlier version folders: preserved builds.
 - `Play-Gravity-Duel.html`: current standalone solo build.
-- `Play-Gravity-Duel-v0.11.1.html` and earlier version files: preserved standalone builds.
+- `Play-Gravity-Duel-v0.12.1.html`, `Play-Gravity-Duel-v0.11.1.html` and earlier version files: preserved standalone builds.
 - Git tag `v0.11.1-playtest`: previous source snapshot.
-- `qa/v0121-tests.txt`: latest automated regression report.
+- `qa/v0122-tests.txt`: latest automated regression report.
 
 This version has not been submitted to CrazyGames.
+
+### v0.12.2 playtest update
+
+Outer Space Loop by wipics (CC0) replaces the menu/combat music; provenance is in `assets/audio/README.txt` and the shipped third-party notices. Boss mechanics, maps and health are unchanged. Previous v0.12.1 remains playable at `legacy-v0.12.1/`. The signaling server needs no update for this client-side release.

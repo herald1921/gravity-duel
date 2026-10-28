@@ -1,0 +1,29 @@
+{
+  "version": "0.12.2",
+  "tests": 193,
+  "failures": 0,
+  "preserved_v0121_build": true,
+  "boss_controller_and_bodies_unchanged": true,
+  "asset_references_checked": 36,
+  "music": {
+    "title": "Outer Space Loop",
+    "author": "wipics",
+    "license": "CC0",
+    "source": "https://opengameart.org/content/outer-space-loop",
+    "sha256": "a47fd0a3b89b697203b7b3bdbaedd6c02f1aae663a723f4287f3c1181c37115e",
+    "bytes": 1681785
+  },
+  "browser_local": {
+    "version_visible": true,
+    "survival_rules_visible": true,
+    "music_fetch_observed": true,
+    "console_warnings_errors": 0,
+    "idle_player_result": {
+      "human": 0,
+      "ai1": 0,
+      "ai2": 3,
+      "ai3": 1
+    },
+    "limitations": "One local real-browser match; does not prove idle wins are impossible or replace human balance testing."
+  }
+}

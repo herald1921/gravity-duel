@@ -1,5 +1,5 @@
-// User-approved high-octave 135136 theme. Two full C / Am phrases at 96 BPM.
-const TRACK_URL = new URL('../../assets/audio/135136-loop.mp3', import.meta.url).href;
+// Outer Space Loop by wipics (CC0). Source and checksum: assets/audio/README.txt.
+const TRACK_URL = new URL('../../assets/audio/outer-space-loop.mp3', import.meta.url).href;
 export class Music {
   private output: GainNode; private source?: AudioBufferSourceNode; private buffer?: AudioBuffer;
   private pending?: Promise<void>; private wanted = false; private disposed = false;

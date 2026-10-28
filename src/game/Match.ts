@@ -45,6 +45,7 @@ export class Match {
     for (const [i, spawn] of (map.extraEnemySpawns ?? []).slice(0, 2).entries()) this.ships.push(new Ship((i + 3) as PlayerId, spawn));
     if (this.freeForAll) for (const ship of this.ships) this.scores[ship.id] = 0;
     this.pickupIn = map.pickupStart ?? 6;
+    if (this.freeForAll) this.targetScore = 3;
     if (this.deathmatch) this.targetScore = 4;
     if (map.boss !== undefined) {
       this.boss = new BossEncounter(map.boss); this.targetScore = 1;

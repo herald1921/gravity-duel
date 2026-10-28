@@ -6,6 +6,7 @@ import { SpaceAI } from '../ai/SpaceAI.js';
 import { difficultyFor } from '../ai/Difficulty.js';
 import { SquadCoordinator } from '../ai/SquadCoordinator.js';
 import { RivalSelector } from '../ai/RivalSelector.js';
+import { RivalPressure } from '../ai/RivalPressure.js';
 import { TrajectoryPlanner } from '../ai/TrajectoryPlanner.js';
 import { createProjectile } from '../entities/Bullet.js';
 import { bodyPosition } from '../entities/CelestialBody.js';
@@ -37,6 +38,7 @@ export class GameScene extends Phaser.Scene {
   private generation = 0; private onboarding = false; private savedResult = false; private wasJammed = false;
   private ais: SpaceAI[] = []; private fireGates: OpeningFireGate[] = []; private squad?: SquadCoordinator;
   private rivalSelectors: RivalSelector[] = [];
+  private rivalPressure = new RivalPressure();
   private pendingFire: [boolean, boolean] = [false, false];
   private mouseFire = false; private mouseAim?: {x:number; y:number}; private modern = false;
   private bodies!: Phaser.GameObjects.Graphics; private previews!: Phaser.GameObjects.Graphics;
@@ -66,7 +68,7 @@ export class GameScene extends Phaser.Scene {
     this.fireGates = this.ais.map(() => new OpeningFireGate(this.mode === '1p' ? this.arcadeIndex : null, difficulty));
     this.ai = this.ais[0]; this.ais.forEach(ai => ai.reset());
     this.squad = !this.online && this.mode === '1p' && this.ais.length > 1 && !this.match.freeForAll && !this.match.boss ? new SquadCoordinator(map.campaignIndex ?? 8) : undefined;
-    this.rivalSelectors = this.ais.map(() => new RivalSelector());
+    this.rivalSelectors = this.ais.map(() => new RivalSelector()); this.rivalPressure.reset();
     this.clock.reset();
     this.debug = C.DEBUG; this.visualTime = 0; this.previewIn = 0; this.pulseIn = 0; this.acted = false;
     pause.set('manual', false); platform.setGameplay(false);
@@ -114,7 +116,7 @@ export class GameScene extends Phaser.Scene {
     const onPause = () => {
       this.mouseFire = false;
       this.ais.forEach(ai => ai.reset()); this.planner?.cancel(); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset();
-      this.rivalSelectors.forEach(selector => selector.reset());
+      this.rivalSelectors.forEach(selector => selector.reset()); this.rivalPressure.reset();
       this.clock.reset(); this.input.keyboard?.resetKeys(); this.touch?.state.clear(); this.pendingFire = [false, false]; this.previewIn = 0;
       if (this.input.keyboard) this.input.keyboard.enabled = !pause.has('ad');
     };
@@ -171,10 +173,11 @@ export class GameScene extends Phaser.Scene {
       this.pendingFire = [false, false]; this.touch?.state.consumeFire();
       if (playing && [first, humanSecond].some(c => c.turn || c.thrust || c.fire || c.move)) this.acted = true;
       if (playing && this.acted) this.squad?.update(C.PHYSICS_DT, this.match.ships.slice(1), this.match.ships[0], this.match.map.bodies, this.match.time, this.match.pickups);
+      if (playing && this.acted && this.match.freeForAll) this.rivalPressure.update(C.PHYSICS_DT, this.match.ships, this.match.bullets);
       const enemyControls = this.mode === '2p' ? [humanSecond] : this.ais.map((ai, i) => {
         const ship = this.match.ships[i + 1];
         if (!playing || !this.acted || !ship.alive || this.match.boss) return IDLE_CONTROL;
-        const target = this.match.freeForAll ? this.rivalSelectors[i].select(C.PHYSICS_DT, ship, this.match.ships, this.match.map.bodies, this.match.time) : this.match.ships[0];
+        const target = this.match.freeForAll ? this.rivalSelectors[i].select(C.PHYSICS_DT, ship, this.match.ships, this.match.map.bodies, this.match.time, this.rivalPressure) : this.match.ships[0];
         if (!target) return IDLE_CONTROL;
         const control = ai.update(C.PHYSICS_DT, ship, target, this.match.map.bodies,
           { time: this.match.time, wormholes: this.match.map.wormholes, shipGravity: this.match.map.shipGravity }, this.match.pickups, this.match.bullets, this.match.freeForAll ? [] : this.match.ships.slice(1), this.squad?.orders.get(ship.id));
@@ -245,7 +248,7 @@ export class GameScene extends Phaser.Scene {
         if (this.match.draw && event.victim === 1) sound.play('draw');
         sound.play('death'); this.effects.flash(event.position, playerColor(event.victim), true);
         if (!device.touch) this.cameras.main.shake(120, 0.002, false);
-      } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset(); this.rivalSelectors.forEach(selector => selector.reset()); this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
+      } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset(); this.rivalSelectors.forEach(selector => selector.reset()); this.rivalPressure.reset(); this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
       else if (event.type === 'laser') { if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time); sound.play('laserFire'); this.effects.burst(event.position, 0xffcf70, 12); }
       else if (event.type === 'mechanic') {
         if (event.sound === 'laserCharge' && event.owner && event.owner > 1) this.squad?.reserveShot(event.owner, this.match.time);

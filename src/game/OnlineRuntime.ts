@@ -4,6 +4,7 @@ import { IDLE_CONTROL, type PlayerId, type ShipControl } from '../entities/Ship.
 import { SpaceAI, findAimSolution } from '../ai/SpaceAI.js';
 import { difficultyFor } from '../ai/Difficulty.js';
 import { RivalSelector } from '../ai/RivalSelector.js';
+import { RivalPressure } from '../ai/RivalPressure.js';
 import { OpeningFireGate } from './OpeningFireGate.js';
 import { SquadCoordinator } from '../ai/SquadCoordinator.js';
 import type { AimPlanner } from '../ai/TrajectoryPlanner.js';
@@ -12,16 +13,17 @@ export type OnlineMode = 'ffa' | 'teams';
 export function onlineMap(id: string, mode: OnlineMode) {
   const original = CAMPAIGN_MAPS.find(m => m.id === id && m.boss === undefined) ?? CAMPAIGN_MAPS[4];
   return { ...original, boss: undefined, campaignIndex: undefined, combat: mode === 'ffa' ? 'freeForAll' as const : 'squad' as const,
-    scoreMode: mode === 'ffa' ? 'kills' as const : undefined, teams: mode === 'teams' ? [1,1,2,2] : undefined,
+    scoreMode: undefined, teams: mode === 'teams' ? [1,1,2,2] : undefined,
     player1Spawn: { x: 170, y: 555, angle: -.35 }, player2Spawn: { x: 170, y: 185, angle: .35 },
     extraEnemySpawns: [{ x: 1100, y: 185, angle: 2.8 }, { x: 1100, y: 555, angle: -2.8 }],
-    hint: mode === 'ffa' ? 'FOUR-WAY KILL RACE · FIRST TO 4 · 90 SECONDS' : 'P1 + P2 vs P3 + P4 · FIRST TEAM TO 3 · FRIENDLY FIRE OFF' };
+    hint: mode === 'ffa' ? 'LAST SURVIVOR +1 · FIRST TO 3 ROUNDS · NO RESPAWNS' : 'P1 + P2 vs P3 + P4 · FIRST TEAM TO 3 · FRIENDLY FIRE OFF' };
 }
 export class OnlineRuntime {
   readonly match: Match;
   readonly humans = new Set<PlayerId>();
   private controls = new Map<PlayerId, { input: ShipControl; age: number }>();
   private ais: SpaceAI[];
+  private rivalPressure = new RivalPressure();
   private selectors = Array.from({length:4}, () => new RivalSelector());
   private gates = Array.from({length:4}, () => new OpeningFireGate(null, difficultyFor(14)));
   private squads = [new SquadCoordinator(14), new SquadCoordinator(14)];
@@ -35,18 +37,24 @@ export class OnlineRuntime {
   }
   step(): void {
     const m = this.match;
+    if (this.mode === 'ffa') {
+      if (m.phase === 'playing') this.rivalPressure.update(PHYSICS_DT, m.ships, m.bullets);
+      else { this.rivalPressure.reset(); this.selectors.forEach(s => s.reset()); this.ais.forEach(a => a.reset()); this.gates.forEach(g => g.reset()); }
+    }
     if (this.mode === 'teams') for (let i=0;i<2;i++) {
       const allies = m.ships.filter(s=>m.team(s.id)===i+1), target=m.ships.find(s=>s.alive&&m.team(s.id)!==i+1);
       if(target)this.squads[i].update(PHYSICS_DT,allies,target,m.map.bodies,m.time,m.pickups);
     }
     const controls = m.ships.map((ship,i) => {
       if (this.humans.has(ship.id)) {
+        this.rivalPressure.assign(ship.id);
         const entry = this.controls.get(ship.id);
         if(!entry || (entry.age += PHYSICS_DT)>.3)return {...IDLE_CONTROL,independentAim:true};
         const input={...entry.input};entry.input.fire=false;return input;
       }
-      const target=this.selectors[i].select(PHYSICS_DT,ship,m.rivals(ship.id),m.map.bodies,m.time);
-      if(!ship.alive||!target||m.phase!=='playing')return {...IDLE_CONTROL};
+      if(!ship.alive||m.phase!=='playing')return {...IDLE_CONTROL};
+      const target=this.selectors[i].select(PHYSICS_DT,ship,m.rivals(ship.id),m.map.bodies,m.time,this.mode==='ffa'?this.rivalPressure:undefined);
+      if(!target||m.phase!=='playing')return {...IDLE_CONTROL};
       const allies=m.ships.filter(s=>s.id!==ship.id&&m.team(s.id)===m.team(ship.id));
       const control=this.ais[i].update(PHYSICS_DT,ship,target,m.map.bodies,{time:m.time,wormholes:m.map.wormholes,shipGravity:m.map.shipGravity},m.pickups,m.bullets,allies,
         this.mode==='teams'?this.squads[m.team(ship.id)-1].orders.get(ship.id):undefined);

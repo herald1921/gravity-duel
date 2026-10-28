@@ -34,7 +34,7 @@ export class MapSelectScene extends Phaser.Scene {
    map.bodies.forEach(b=>{if(b.type==='pulsar'){const p=bodyPosition(b,0);art.lineStyle(12,0x6ae7ff,.6).lineBetween(p.x-100,p.y+70,p.x+100,p.y-70);art.fillStyle(0xd4f9ff).fillCircle(p.x,p.y,b.radius);}else drawCelestial(art,b);});(map.wormholes??[]).forEach(w=>drawWormhole(art,w,0));art.restore();
    card.container.add(art);card.text(this,137,compact?6:20,map.name,22);card.text(this,137,compact?31:54,this.mode==='2p'?'ARENA '+(i+1):'LEVEL '+(this.unit+1)+'-'+(i+1)+' · '+(locked?'LOCKED':cleared?'CLEARED':'READY'),18,'#9fb8d0');
    const enemies=1+(map.extraEnemySpawns?.length??0), moving=map.bodies.some(b=>b.motion);
-   card.container.add(label(this,137,compact?56:87,map.boss!==undefined?'BOSS ENCOUNTER':map.combat==='freeForAll'?'4-WAY · KILL RACE':enemies>1?'2-AI SQUAD':(map.bodies.some(b=>b.type==='pulsar')?'NEUTRON':moving?'ORBITING':'STATIC')+' · 1 RIVAL',18,locked?'#6d8298':'#70e9d4').setWordWrapWidth(230));this.cards.push(card);
+   card.container.add(label(this,137,compact?56:87,map.boss!==undefined?'BOSS ENCOUNTER':map.combat==='freeForAll'?'4-WAY · SURVIVAL':enemies>1?'2-AI SQUAD':(map.bodies.some(b=>b.type==='pulsar')?'NEUTRON':moving?'ORBITING':'STATIC')+' · 1 RIVAL',18,locked?'#6d8298':'#70e9d4').setWordWrapWidth(230));this.cards.push(card);
   });
   this.footer=label(this,52,647,'',18,'#a9bed2').setWordWrapWidth(1170);this.select(0);
   bindMenuKeys(this,k=>{if(pause.paused)return;const n=this.maps.length;if(['ArrowLeft','KeyA'].includes(k))this.select((this.selected+n-1)%n);
