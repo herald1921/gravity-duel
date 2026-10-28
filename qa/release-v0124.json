@@ -11,6 +11,6 @@
     "passed": 199,
     "failed": 0
   },
-  "humanPhoneRetest": "pending",
+  "humanPhoneRetest": "User confirmed the v0.12.4 release-to-fire fix works on a real phone on 2026-10-29.",
   "platformMultiplayer": "pending"
 }

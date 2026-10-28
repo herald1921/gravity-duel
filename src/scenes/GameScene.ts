@@ -13,6 +13,7 @@ import { bodyPosition } from '../entities/CelestialBody.js';
 import { POWERUP_COLORS, POWERUP_NAMES, POWERUP_HELP } from '../entities/PowerUp.js';
 import { IDLE_CONTROL, type ShipControl } from '../entities/Ship.js';
 import { ARCADE, nextArena } from '../game/Arcade.js';
+import { campaignEntry } from '../game/CampaignAccess.js';
 import { earnedBadges } from '../game/Rewards.js';
 import { OpeningFireGate } from '../game/OpeningFireGate.js';
 import { Match, type GameMode } from '../game/Match.js';
@@ -51,6 +52,7 @@ export class GameScene extends Phaser.Scene {
     this.online=data.online;this.localId=data.online?.id??1;this.netSeen=undefined;this.netInputIn=0;
     this.mode = '1p';
     this.arcadeIndex = this.mode === '1p' && Number.isInteger(data.arcadeIndex) ? Math.max(0, Math.min(ARCADE.length - 1, data.arcadeIndex!)) : null;
+    if(isCrazyGames&&!this.online)this.arcadeIndex=campaignEntry(this.arcadeIndex??ARCADE.findIndex(a=>a.mapId===data.mapId),profile.data.cleared);
     this.mapId = this.arcadeIndex === null ? data.mapId ?? 'classic-orbit' : ARCADE[this.arcadeIndex].mapId;
   }
   create(): void {

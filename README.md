@@ -1,4 +1,4 @@
-# Gravity Duel — v0.12.4 playtest
+# Gravity Duel — v0.12.5 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
 Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
@@ -17,7 +17,7 @@ Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
 - Phone: left stick moves, right stick aims; **release to shoot once**. A release during reload waits for one available shot instead of disappearing; starting a new aim cancels that pending shot. Return the right stick to center before releasing to cancel. Touch cancellation, pause and focus loss clear pending fire. Guidance lines require the pickup outside flight school.
 - Graphics: 2560×1440 render buffer with a fixed 1280×720 world and sharper text. Input is converted through the camera so scaling does not change aim or touch positions.
 
-Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to the same original levels; added bosses start uncleared. Original saves are never overwritten. **CAMPAIGN → PRACTICE ALL** opens every arena without advancing campaign completion.
+Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to the same original levels; added bosses start uncleared. Original saves are never overwritten. The GitHub playtest retains **CAMPAIGN → PRACTICE ALL**, which opens every arena without advancing campaign completion. The CrazyGames build removes this button and enforces sequential campaign unlocking at both the level picker and scene entry. Online arena selection is independent of solo progression.
 
 ## Online multiplayer
 

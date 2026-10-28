@@ -6,14 +6,15 @@ import { bodyPosition } from '../entities/CelestialBody.js';
 import { drawBackground,label } from '../rendering/draw.js';
 import { drawCelestial,drawWormhole } from '../rendering/space.js';
 import { bindMenuKeys,MenuCard } from '../ui/menu.js';
+import { campaignUnlocked } from '../game/CampaignAccess.js';
 import { button } from '../ui/widgets.js';
-import { device,pause,platform,profile } from '../platform/runtime.js';
+import { device,isCrazyGames,pause,platform,profile } from '../platform/runtime.js';
 export class MapSelectScene extends Phaser.Scene {
  private mode:GameMode='1p';private selected=0;private cards:MenuCard[]=[];
  private unit=0;private practice=false;private maps:readonly GameMap[]=[];private footer!:Phaser.GameObjects.Text;
  constructor(){super('MapSelect');}
  init(data:{mode?:GameMode;unit?:number;practice?:boolean}):void{
-  this.mode='1p';this.unit=Math.max(0,Math.min(2,data.unit??unitForIndex(profile.data.runIndex??0)));this.practice=data.practice===true;
+  this.mode='1p';this.unit=Math.max(0,Math.min(2,data.unit??unitForIndex(profile.data.runIndex??0)));this.practice=!isCrazyGames&&data.practice===true;
  }
  create():void{
   this.cards=[];platform.setGameplay(false);drawBackground(this);
@@ -22,7 +23,7 @@ export class MapSelectScene extends Phaser.Scene {
   button(this,1095,24,137,60,'BACK',()=>this.scene.start('Menu'));
   if(this.mode==='1p'){
    UNITS.forEach((_name,i)=>button(this,52+i*294,110,280,58,['1 · PLANETS','2 · STARS','3 · BLACK HOLES'][i]+' ('+UNIT_COUNTS[i]+')',()=>this.scene.restart({mode:this.mode,unit:i,practice:this.practice}),i===this.unit?0x69f4df:0x96acc3));
-   button(this,940,110,292,58,this.practice?'CAMPAIGN MODE':'PRACTICE ALL',()=>this.scene.restart({mode:this.mode,unit:this.unit,practice:!this.practice}),0xffcb87);
+   if(!isCrazyGames)button(this,940,110,292,58,this.practice?'CAMPAIGN MODE':'PRACTICE ALL',()=>this.scene.restart({mode:this.mode,unit:this.unit,practice:!this.practice}),0xffcb87);
   }
   this.maps=this.mode==='2p'?MAPS:CAMPAIGN_MAPS.filter(m=>m.unitIndex===this.unit);
   const compact=this.maps.length>9, rowHeight=this.maps.length>12?89:compact?112:150, cardHeight=this.maps.length>12?83:compact?104:136;
@@ -42,10 +43,10 @@ export class MapSelectScene extends Phaser.Scene {
    if(['ArrowDown','KeyS'].includes(k))this.select((this.selected+3)%n);if(k==='Enter'||k==='Space')this.choose(this.selected);if(k==='Escape')this.scene.start('Menu');});
  }
  private select(i:number):void{this.selected=i;this.cards.forEach((c,n)=>c.select(n===i));this.footer?.setText(this.maps[i].description+'\n'+(device.touch?'Tap a level to start.':'Arrow keys to choose · Enter to play · Esc to return'));}
- private locked(i:number):boolean{const index=this.maps[i].campaignIndex??0;return this.mode==='1p'&&!this.practice&&index>0&&!profile.data.cleared.includes(index-1)&&!profile.data.cleared.includes(index);}
+ private locked(i:number):boolean{const index=this.maps[i].campaignIndex??0;return this.mode==='1p'&&!this.practice&&!campaignUnlocked(index,profile.data.cleared);}
  private choose(i:number):void{
   if(pause.paused)return;
-  if(this.locked(i)){this.footer.setText('Clear the previous level first, or choose PRACTICE ALL to try any level.');return;}
+  if(this.locked(i)){this.footer.setText(isCrazyGames?'Clear the previous level to unlock this arena.':'Clear the previous level first, or choose PRACTICE ALL to try any level.');return;}
   if(this.mode==='1p'&&!this.practice){const index=this.maps[i].campaignIndex!;this.scene.start(index===0&&!profile.data.tutorialDone?'Tutorial':'Game',{mode:'1p',arcadeIndex:index});}
   else this.scene.start('Game',{mode:this.mode,mapId:this.maps[i].id});
  }
