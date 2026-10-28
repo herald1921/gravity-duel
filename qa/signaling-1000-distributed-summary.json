@@ -1,0 +1,33 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "run": "https://github.com/herald1921/gravity-duel/actions/runs/40688185259",
+  "serverCommit": "9ca3565",
+  "harnessCommit": "fe806c8",
+  "rooms": 1000,
+  "sockets": 4000,
+  "minimumHoldSeconds": 600.613,
+  "disconnects": 0,
+  "recovered": 0,
+  "unrecovered": 0,
+  "connectionRetries": 0,
+  "hostMigrations": 0,
+  "signalPackets": 6000,
+  "pingP95RangeMs": [
+    200,
+    317
+  ],
+  "serviceCpuCoresRange": [
+    0.021291434783260114,
+    0.021319796051067055
+  ],
+  "serviceRssMBRange": [
+    98,
+    98
+  ],
+  "serviceApplicationOutboundMBPerHourRange": [
+    1.4293395838500942,
+    1.445722953049634
+  ],
+  "allShardsRetained1000RoomsAnd4000Peers": true,
+  "notes": "CPU and outbound rates are whole-service readings; do not sum shards. JSON byte counts exclude framing/TLS/HTTP. Not full WebRTC gameplay or a monthly free-tier guarantee."
+}

@@ -21,9 +21,16 @@ Further verification on 2026-10-28:
 - Reconnect regression reproduced 4 rejected returning players before the admission fix; all 24 returned to six full rooms after the fix.
 - Published cf7f26a checked via actual asset index-CQzkgcPK.js. Two public browser clients matched randomly, connected DIRECT and finished one FFA match; no warnings/errors recorded. Same workstation/network, not a physical multi-device test.
 
+- Public attempt 5: four shards without recovery stopped after a guest connection closed abnormally at age 104.707 s. See signaling-distributed-attempt5-shard4.json and run 40686251854. Other shards could not complete the global barrier.
+- Small public idle comparison: four sockets held 365.4 seconds; both protocol-only and application-alive variants survived. This did not establish idle timeout as the cause.
+- Final public test PASSED: run https://github.com/herald1921/gravity-duel/actions/runs/40688185259 ; server 9ca3565, harness fe806c8. Four runners x 250 rooms x 4 players, at least 600.613 seconds at full capacity. All four reports retain 1,000 rooms and 4,000 peers at end. Zero disconnects, zero reconnect retries, zero host migrations, all 6,000 signal packets delivered. Whole-service CPU approximately 0.0213 cores, RSS 98 MiB. Signaling ping p95 across shards 200-317 ms (not gameplay latency).
+- Test supports reconnection and records all interruptions; the passing run did not need recovery. Earlier failed runs were not reclassified as passes.
+- The new run changed keepalive and test-source distribution; it does not isolate a causal explanation for previous failures.
+- Latest public build index-BReJNOMH.js verified in the actual browser. Existing old-version standalone SHA-256 remains unchanged.
+
 Important boundaries:
 - Signaling load tests do NOT run 1,000 live WebRTC game simulations. Their room counts are not a claim of 1,000 stable real matches.
 - The public browser clients above are on one workstation/network. Separate physical phones, different networks/NATs, sustained low-end host performance, packet loss and distributed 1,000-match gameplay remain unverified.
 - JSON byte counters exclude protocol/TLS/HTTP overhead; limits on relay traffic are protective, not a Render billing cap. Counters reset on server restart.
 - Render Free can sleep/restart and has monthly usage allowances. With a payment card, overages may be billed.
-- Online endpoint: wss://gravity-duel-online.onrender.com. Current free service code: 3aef22f.
+- Online endpoint: wss://gravity-duel-online.onrender.com. Current free service code: 9ca3565 (Render deployment verified Live).
