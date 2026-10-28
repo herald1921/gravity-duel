@@ -14,7 +14,7 @@
     "build:crazygames": "tsc --noEmit && vite build --mode crazygames --outDir crazygames-v0.12.1",
     "build:server": "tsc -p tsconfig.server.json",
     "start:server": "node server/index.mjs",
-    "test:server": "npm run build:server && node tests/server-smoke.mjs"
+    "test:server": "npm run build:server && node tests/server-smoke.mjs && node tests/server-reconnect-burst.mjs"
   },
   "dependencies": {
     "phaser": "3.90.0",

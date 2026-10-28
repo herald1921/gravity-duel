@@ -2,13 +2,13 @@ import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 // This service never imports, simulates or renders game physics. Each room has a browser host.
-const rooms=new Map(),peers=new Set(),maxRooms=Number(process.env.MAX_ROOMS||1000),maxRelayRooms=Number(process.env.MAX_RELAY_ROOMS||2);
+const rooms=new Map(),peers=new Set(),livePeers=new Set(),maxRooms=Number(process.env.MAX_ROOMS||1000),maxRelayRooms=Number(process.env.MAX_RELAY_ROOMS||2);
 const origins=(process.env.ALLOWED_ORIGINS||'https://herald1921.github.io,http://127.0.0.1:5176,http://localhost:5176').split(',');
 let outbound=0,inbound=0,relayed=0,relayDay=Math.floor(Date.now()/86400000),relayDayBytes=0;
 const relayDailyLimit=Number(process.env.RELAY_DAILY_MB||32)*1048576;
 const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.1',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
 const wss=new WebSocketServer({noServer:true,maxPayload:32768,perMessageDeflate:false});
-server.on('upgrade',(req,socket,head)=>{if(!origins.includes(req.headers.origin)||peers.size>=maxRooms*4+20){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
+server.on('upgrade',(req,socket,head)=>{if(!origins.includes(req.headers.origin)||livePeers.size>=maxRooms*4+20){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
 function send(p,value){if(p.ws.readyState===1&&p.ws.bufferedAmount<256000){const data=JSON.stringify(value);outbound+=Buffer.byteLength(data);p.ws.send(data);}}
 function broadcast(r,value){for(const p of r.peers)send(p,value);}
 function state(r){return {type:'room',code:r.code,mode:r.mode,mapId:r.mapId,started:r.started,owner:r.peers.find(p=>p.ws.readyState===1)?.id,host:r.host,epoch:r.epoch,round:r.round,
@@ -19,7 +19,7 @@ function leave(p){const r=p.room;if(!r)return;r.peers=r.peers.filter(q=>q!==p);p
 function start(r){if(r.peers.filter(p=>p.ws.readyState===1).length<2)return;r.started=true;r.startAt=0;r.round++;elect(r);broadcast(r,state(r));}
 function join(p,r){if(r.started||r.peers.length>=4)throw Error('Room full or match already started.');p.id=[1,2,3,4].find(id=>!r.peers.some(q=>q.id===id));p.room=r;r.peers.push(p);send(p,{type:'joined',id:p.id,token:p.token});if(r.random&&r.peers.length>=2&&!r.startAt)r.startAt=Date.now()+4000;broadcast(r,state(r));}
 wss.on('connection',ws=>{
- const p={ws,token:randomBytes(24).toString('hex'),id:0,room:null,lastSeen:Date.now(),window:Date.now(),messages:0,bytes:0,visible:true,desktop:true,nextRelayError:0};peers.add(p);
+ const p={ws,token:randomBytes(24).toString('hex'),id:0,room:null,lastSeen:Date.now(),window:Date.now(),messages:0,bytes:0,visible:true,desktop:true,nextRelayError:0};peers.add(p);livePeers.add(p);
  ws.on('pong',()=>p.lastSeen=Date.now());
  ws.on('message',raw=>{try{
   inbound+=raw.length;if(Date.now()-p.window>1000){p.window=Date.now();p.messages=0;p.bytes=0;}p.bytes+=raw.length;
@@ -57,7 +57,7 @@ wss.on('connection',ws=>{
   if(rooms.size>=maxRooms)throw Error('Server is full. Please try again shortly.');let code;do{code=randomBytes(4).toString('hex').toUpperCase();}while(rooms.has(code));
   const room={code,mode,mapId:typeof msg.mapId==='string'&&msg.mapId.length<32?msg.mapId:'unit-1-5',random:msg.type==='random',peers:[],started:false,startAt:0,host:0,epoch:0,round:0,hostPulse:0,relayUntil:0};rooms.set(code,room);join(p,room);
  }catch(e){send(p,{type:'error',message:e instanceof SyntaxError?'Invalid message':e.message});}});
- ws.on('close',()=>{p.lastSeen=Date.now();const r=p.room;if(!r?.started){leave(p);peers.delete(p);}else{if(r.host===p.id)elect(r,p);broadcast(r,state(r));}});ws.on('error',()=>ws.close());
+ ws.on('close',()=>{livePeers.delete(p);p.lastSeen=Date.now();const r=p.room;if(!r?.started){leave(p);peers.delete(p);}else{if(r.host===p.id)elect(r,p);broadcast(r,state(r));}});ws.on('error',()=>ws.close());
 });
 let heartbeats=0;
 const timer=setInterval(()=>{
