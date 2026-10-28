@@ -6,7 +6,7 @@ const rooms=new Map(),peers=new Set(),livePeers=new Set(),maxRooms=Number(proces
 const origins=(process.env.ALLOWED_ORIGINS||'https://herald1921.github.io,http://127.0.0.1:5176,http://localhost:5176').split(',');
 let outbound=0,inbound=0,relayed=0,relayDay=Math.floor(Date.now()/86400000),relayDayBytes=0;
 const relayDailyLimit=Number(process.env.RELAY_DAILY_MB||32)*1048576;
-const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.3',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
+const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.4',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
 const wss=new WebSocketServer({noServer:true,maxPayload:32768,perMessageDeflate:false});
 server.on('upgrade',(req,socket,head)=>{if(!origins.includes(req.headers.origin)||livePeers.size>=maxRooms*4+20){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
 function send(p,value){if(p.ws.readyState===1&&p.ws.bufferedAmount<256000){const data=JSON.stringify(value);outbound+=Buffer.byteLength(data);p.ws.send(data);}}
@@ -30,8 +30,12 @@ wss.on('connection',ws=>{
   if(msg.type==='visibility'){p.visible=msg.visible===true;if(r?.started){const host=r.peers.find(q=>q.id===r.host);if(!host?.visible)elect(r);broadcast(r,state(r));}return;}
   if(msg.type==='hostPulse'){if(r&&r.host===p.id)r.hostPulse=Date.now();return;}
   if(msg.type==='resume'){
-   const old=[...peers].find(q=>q!==p&&q.token===msg.token&&q.room&&q.ws.readyState!==1);if(!old)throw Error('Previous room expired. Please join again.');
-   const room=old.room;p.token=old.token;p.id=old.id;p.room=room;p.desktop=old.desktop;room.peers=room.peers.map(q=>q===old?p:q);peers.delete(old);if(!room.host)elect(room);send(p,{type:'joined',id:p.id,token:p.token});broadcast(room,state(room));return;
+   // The browser can detect a broken connection before the broker does. A valid
+   // resume token replaces that half-open socket instead of reporting a false expiry.
+   const old=[...peers].find(q=>q!==p&&q.token===msg.token&&q.room);if(!old)throw Error('Previous room expired. Please join again.');
+   const room=old.room;p.token=old.token;p.id=old.id;p.room=room;p.desktop=old.desktop;room.peers=room.peers.map(q=>q===old?p:q);
+   old.room=null;peers.delete(old);old.ws.close(4001,'Session resumed');
+   if(!room.host)elect(room);send(p,{type:'joined',id:p.id,token:p.token});broadcast(room,state(room));return;
   }
   if(msg.type==='signal'||msg.type==='relay'){
    if(!r?.started||msg.epoch!==r.epoch||msg.round!==r.round)return;

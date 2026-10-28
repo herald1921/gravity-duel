@@ -12,7 +12,11 @@ try{
  const restored=await returning.wait('room');assert.equal(restored.code,invite.code);assert.equal(restored.started,false);assert.equal(restored.owner,1);
  const invited=await peer();invited.send({type:'join',code:invite.code});assert.equal((await invited.wait('joined')).id,2);
  returning.send({type:'start'});await returning.wait('room',r=>r.started);await invited.wait('room',r=>r.started);
- returning.send({type:'leave'});invited.send({type:'leave'});
+ // A mobile/network transition may leave the former socket OPEN at the broker.
+ const halfOpen=await peer();halfOpen.send({type:'resume',token:identity.token});assert.equal((await halfOpen.wait('joined')).id,1);
+ const retained=await halfOpen.wait('room');assert.equal(retained.code,invite.code);assert.equal(retained.started,true);assert.equal(retained.players.length,2);
+ await sleep(100);assert.equal(returning.ws.readyState,3);assert.equal((await(await fetch('http://127.0.0.1:'+port+'/health')).json()).active,1);
+ halfOpen.send({type:'leave'});invited.send({type:'leave'});
  const a=await peer(),b=await peer();a.send({type:'create',mode:'teams'});const ja=await a.wait('joined'),r=await a.wait('room');b.send({type:'join',code:r.code});await b.wait('joined');a.send({type:'start'});
  const room=await a.wait('room',r=>r.started);await b.wait('room',r=>r.started);assert.equal(room.host,1);assert.equal(room.round,1);
  const route=(to,extra={})=>({to,epoch:room.epoch,round:room.round,...extra});
