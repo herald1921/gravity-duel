@@ -8,3 +8,7 @@ baseline-v081-sha256.json
 
 .server-build/
 qa/*.cpuprofile
+
+# Local account setup evidence; never part of a public release.
+qa/render-card-required.png
+qa/PAUSED.txt

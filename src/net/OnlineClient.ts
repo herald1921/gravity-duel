@@ -67,6 +67,7 @@ export class OnlineClient {
     }
     if(this.runtime){this.runtime.humans.clear();for(const p of room.players)if(p.connected&&p.visible)this.runtime.humans.add(p.id);}
   }
+  private peerIds():PlayerId[] {return this.room?.players.filter(p=>p.connected&&p.id!==this.id&&(this.id===this.room?.host||p.id===this.room?.host)).map(p=>p.id)??[];}
   private packet(type:string,extra:Partial<Packet>={}):Packet{return {type,seq:++this.seq,epoch:this.epoch,round:this.round,...extra};}
   private transmit(to:PlayerId,packet:Packet):void {
     const link=this.links.get(to);if(link?.send(packet,packet.type==='state'))return;
@@ -92,7 +93,7 @@ export class OnlineClient {
   /** Called even while the player's controls are paused; world simulation belongs to the room. */
   tick(dt:number):void {
     if(!this.connected||!this.room?.started||document.hidden)return;
-    this.echoIn-=dt;if(this.echoIn<=0){this.echoIn=3;for(const id of this.links.keys())this.transmit(id,this.packet('echo',{time:performance.now()}));}
+    this.echoIn-=dt;if(this.echoIn<=0){this.echoIn=3;for(const id of this.peerIds())this.transmit(id,this.packet('echo',{time:performance.now()}));}
     if(!this.runtime)return;
     this.pulseIn-=dt;if(this.pulseIn<=0){this.pulseIn=3;this.send({type:'hostPulse'});}
     // A match waits for all connected humans to reach its host. No AI kills during negotiation.
@@ -102,7 +103,7 @@ export class OnlineClient {
     else {this.accumulator=0;this.status=this.relayIssue||'Waiting for player connection…';}
     this.publishIn-=dt;if(this.publishIn<=0){this.publishIn=.05;
       const state=structuredClone(snapshot(this.runtime.match));const packet=this.packet('state',{state,waiting:this.waiting});
-      for(const id of this.links.keys())this.transmit(id,packet);this.acceptSnapshot(state);
+      for(const id of this.peerIds())this.transmit(id,packet);this.acceptSnapshot(state);
     }
   }
   renderState():Snapshot|undefined {

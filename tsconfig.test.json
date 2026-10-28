@@ -19,6 +19,8 @@
     "src/rendering/Sound.ts",
     "src/input/*.ts",
     "src/platform/CrazyGames.ts",
-    "src/net/input.ts"
+    "src/net/input.ts",
+    "src/net/OnlineClient.ts",
+    "src/vite-env.d.ts"
   ]
 }
