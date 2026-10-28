@@ -9,7 +9,7 @@ export class MenuScene extends Phaser.Scene {
   constructor(){super('Menu');}
   create():void {
     platform.setGameplay(false);drawBackground(this);this.seconds=0;
-    label(this,64,44,'ORBITAL COMBAT  / 0.12.3',22,'#70e9d4');
+    label(this,64,44,'ORBITAL COMBAT  / 0.12.4',22,'#70e9d4');
     this.add.text(60,102,'GRAVITY\nDUEL',{resolution:2,fontFamily:'Arial',fontSize:'82px',fontStyle:'bold',color:'#f0f6ff',lineSpacing:-13});
     label(this,65,294,'A little gravity. A perfect shot.',26,'#b8cbdf');
     const saved=profile.data.runIndex;

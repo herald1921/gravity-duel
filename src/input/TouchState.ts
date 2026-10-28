@@ -10,6 +10,7 @@ export class TouchState {
   constructor(private dual = false) {}
   beginAim(id: number, x: number, y: number): boolean {
     if (this.aimStick || this.stick?.id === id || this.pointers.has(id)) return false;
+    this.pendingFire = false; // A new aiming gesture replaces an unspent release.
     this.aimStick = { id, x: 0, y: 0 }; this.moveAim(id, x, y); return true;
   }
   moveAim(id: number, x: number, y: number): void {
@@ -46,6 +47,7 @@ export class TouchState {
   }
   clear(): void { this.pointers.clear(); this.stick = undefined; this.aimStick = undefined; this.lastAim = undefined; this.pendingFire = false; }
   consumeFire(): void { this.pendingFire = false; }
+  get shotQueued(): boolean { return this.pendingFire; }
   down(action: TouchAction): boolean { return [...this.pointers.values()].includes(action); }
   control(): ShipControl {
     const { x, y } = this.stickPosition, length = Math.hypot(x, y);
@@ -54,6 +56,8 @@ export class TouchState {
     return { turn: clamp(Number(this.down('right')) - Number(this.down('left'))),
       thrust: Number(this.down('thrust')), fire: this.down('fire') || this.pendingFire,
       ...(this.dual ? { independentAim: true, ...(this.lastAim === undefined ? {} : { aim: this.lastAim }) } : {}),
+      ...(this.dual && this.pendingFire ? { bufferedFire: true } : {}),
+      ...(this.dual && this.aimStick ? { cancelBufferedFire: true } : {}),
       ...(gain > 0 ? { move: { x: x * gain, y: y * gain } } : {}) };
   }
 }

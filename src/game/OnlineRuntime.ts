@@ -22,6 +22,7 @@ export class OnlineRuntime {
   readonly match: Match;
   readonly humans = new Set<PlayerId>();
   private controls = new Map<PlayerId, { input: ShipControl; age: number }>();
+  private releasedShots = new Map<PlayerId, {aim?:number}>();
   private ais: SpaceAI[];
   private rivalPressure = new RivalPressure();
   private selectors = Array.from({length:4}, () => new RivalSelector());
@@ -33,10 +34,13 @@ export class OnlineRuntime {
   }
   input(id: PlayerId, value: ShipControl): void {
     const prior = this.controls.get(id);
-    this.controls.set(id, {input: {...value, fire: value.fire || prior?.input.fire === true}, age: 0});
+    if(value.cancelBufferedFire)this.releasedShots.delete(id);
+    if(value.bufferedFire&&value.fire)this.releasedShots.set(id,{aim:value.aim});
+    this.controls.set(id, {input: {...value, fire: (!value.bufferedFire&&value.fire) || prior?.input.fire === true}, age: 0});
   }
   step(): void {
     const m = this.match;
+    const cooldowns=m.ships.map(s=>s.cooldown);
     if (this.mode === 'ffa') {
       if (m.phase === 'playing') this.rivalPressure.update(PHYSICS_DT, m.ships, m.bullets);
       else { this.rivalPressure.reset(); this.selectors.forEach(s => s.reset()); this.ais.forEach(a => a.reset()); this.gates.forEach(g => g.reset()); }
@@ -49,9 +53,12 @@ export class OnlineRuntime {
       if (this.humans.has(ship.id)) {
         this.rivalPressure.assign(ship.id);
         const entry = this.controls.get(ship.id);
-        if(!entry || (entry.age += PHYSICS_DT)>.3)return {...IDLE_CONTROL,independentAim:true};
-        const input={...entry.input};entry.input.fire=false;return input;
+        if(!entry || (entry.age += PHYSICS_DT)>.3){this.releasedShots.delete(ship.id);return {...IDLE_CONTROL,independentAim:true};}
+        if(!ship.alive||m.phase!=='playing')this.releasedShots.delete(ship.id);
+        const released=this.releasedShots.get(ship.id);
+        const input={...entry.input,...(released?{fire:true,aim:released.aim}: {})};entry.input.fire=false;return input;
       }
+      this.releasedShots.delete(ship.id);
       if(!ship.alive||m.phase!=='playing')return {...IDLE_CONTROL};
       const target=this.selectors[i].select(PHYSICS_DT,ship,m.rivals(ship.id),m.map.bodies,m.time,this.mode==='ffa'?this.rivalPressure:undefined);
       if(!target||m.phase!=='playing')return {...IDLE_CONTROL};
@@ -61,6 +68,7 @@ export class OnlineRuntime {
       control.fire=this.gates[i].step(PHYSICS_DT,control.fire,ship.cooldown<=1e-9&&!ship.laserCharge);return control;
     });
     m.step(controls);
+    for(const [i,ship] of m.ships.entries())if(!ship.alive||m.phase!=='playing'||ship.cooldown>Math.max(0,cooldowns[i]-PHYSICS_DT)+1e-8)this.releasedShots.delete(ship.id);
   }
 }
 export function snapshot(m: Match) {

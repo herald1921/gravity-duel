@@ -1,0 +1,16 @@
+{
+  "version": "0.12.4",
+  "submitted": false,
+  "changes": [
+    "Touch release waits through reload until accepted",
+    "New aiming gesture replaces pending shot; cancellation and pause clear it",
+    "Host buffers a mobile release across later movement packets and consumes it once",
+    "Pointer-up outside releases only that finger"
+  ],
+  "automatedTests": {
+    "passed": 199,
+    "failed": 0
+  },
+  "humanPhoneRetest": "pending",
+  "platformMultiplayer": "pending"
+}

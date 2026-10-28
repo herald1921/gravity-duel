@@ -3,7 +3,7 @@ import { getShipAcceleration, segmentCircleContact, type Vec2 } from '../physics
 import { bodyPosition, bodyVelocity, inPulsarBeam, type CelestialBody } from './CelestialBody.js';
 import type { SpecialShot } from './PowerUp.js';
 export type PlayerId = 1 | 2 | 3 | 4;
-export interface ShipControl { turn: number; thrust: number; fire: boolean; move?: Vec2; aim?: number; independentAim?: boolean }
+export interface ShipControl { turn: number; thrust: number; fire: boolean; move?: Vec2; aim?: number; independentAim?: boolean; bufferedFire?: boolean; cancelBufferedFire?: boolean }
 export const IDLE_CONTROL: ShipControl = { turn: 0, thrust: 0, fire: false };
 export interface Spawn extends Vec2 { angle: number }
 export const otherPlayer = (id: PlayerId): 1 | 2 => id === 1 ? 2 : 1;

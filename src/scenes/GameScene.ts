@@ -170,7 +170,7 @@ export class GameScene extends Phaser.Scene {
       this.visualTime += C.PHYSICS_DT; this.hud.tick(C.PHYSICS_DT);
       const first = this.humanControl(1), humanSecond = this.mode === '2p' ? this.humanControl(2) : IDLE_CONTROL;
       const playing = this.match.phase === 'playing';
-      this.pendingFire = [false, false]; this.touch?.state.consumeFire();
+      this.pendingFire = [false, false];
       if (playing && [first, humanSecond].some(c => c.turn || c.thrust || c.fire || c.move)) this.acted = true;
       if (playing && this.acted) this.squad?.update(C.PHYSICS_DT, this.match.ships.slice(1), this.match.ships[0], this.match.map.bodies, this.match.time, this.match.pickups);
       if (playing && this.acted && this.match.freeForAll) this.rivalPressure.update(C.PHYSICS_DT, this.match.ships, this.match.bullets);
@@ -206,14 +206,18 @@ export class GameScene extends Phaser.Scene {
     });
     if (pause.paused) this.clock.reset();
     platform.setGameplay((isCrazyGames || this.acted) && this.match.phase === 'playing' && !this.transitioning);
-    this.touch?.update(!pause.paused && !this.transitioning && (this.match.phase === 'ready' || this.match.phase === 'playing'));
+    this.touch?.update(!pause.paused && !this.transitioning && this.match.ships[0].alive && (this.match.phase === 'ready' || this.match.phase === 'playing'));
     this.touch?.setReload(this.match.ships[0].cooldown / C.FIRE_COOLDOWN);
     this.previewIn -= Math.min(delta / 1000, 0.1);
     this.drawWorld(); this.effects.draw(); this.drawDebug(); this.hud.update(this.match, this.debug, this.game.loop.actualFps);
   }
   private updateOnline(delta:number):void {
     const client=this.online!, dt=Math.min(.1,delta/1000);this.visualTime+=dt;this.hud.tick(dt);this.netInputIn-=dt;
-    if(this.netInputIn<=0){this.netInputIn=1/30;client.input(pause.paused||!client.healthy?{...IDLE_CONTROL,independentAim:true}:this.humanControl(1));this.pendingFire=[false,false];this.touch?.state.consumeFire();}
+    if(this.netInputIn<=0){this.netInputIn=1/30;
+      const blocked=pause.paused||!client.healthy||client.waiting||!this.match.ships[this.localId-1].alive;
+      client.input(blocked?{...IDLE_CONTROL,independentAim:true,cancelBufferedFire:true}:this.humanControl(1));
+      this.pendingFire=[false,false];if(!blocked)this.touch?.state.consumeFire();
+    }
     client.tick(dt);
     const state=client.snapshot;
     if(state&&state!==this.netSeen){this.netSeen=state;this.processEvents(state.events);}
@@ -227,6 +231,7 @@ export class GameScene extends Phaser.Scene {
   private processEvents(events=this.match.drainEvents()): void {
     for (const event of events) {
       if (event.type === 'shot') {
+        if(!this.online&&event.owner===1)this.touch?.state.consumeFire();
         if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time);
         sound.play(event.kind === 'homing' ? 'missileFire' : event.kind === 'orbital' ? 'orbitalFire' : 'shot'); this.effects.flash(event.position, playerColor(event.owner));
       } else if (event.type === 'impact') {
@@ -251,6 +256,7 @@ export class GameScene extends Phaser.Scene {
       } else if (event.type === 'respawn') { this.ais.forEach(ai => ai.reset()); this.fireGates.forEach(gate => gate.reset()); this.squad?.reset(); this.rivalSelectors.forEach(selector => selector.reset()); this.rivalPressure.reset(); this.effects.clear(); this.touch?.state.clear(); this.mouseFire=false; this.pendingFire=[false,false]; }
       else if (event.type === 'laser') { if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time); sound.play('laserFire'); this.effects.burst(event.position, 0xffcf70, 12); }
       else if (event.type === 'mechanic') {
+        if(!this.online&&event.sound==='laserCharge'&&event.owner===1)this.touch?.state.consumeFire();
         if (event.sound === 'laserCharge' && event.owner && event.owner > 1) this.squad?.reserveShot(event.owner, this.match.time);
         sound.play(event.sound);
         if (event.pickupType) this.hud.announce((this.online && event.owner ? this.hud.name(event.owner)+' · ' : event.owner === 1 ? (this.mode === '1p' ? '' : 'P1 · ') : this.mode === '1p' ? 'AI · ' : 'P2 · ') +

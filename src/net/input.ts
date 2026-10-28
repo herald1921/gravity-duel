@@ -5,5 +5,7 @@ export function boundedInput(value: unknown): ShipControl {
   const move = v.move && {x: unit(v.move.x), y: unit(v.move.y)};
   return {turn: unit(v.turn), thrust: unit(v.thrust), fire: v.fire === true, move,
     aim: typeof v.aim === 'number' && Number.isFinite(v.aim) ? Math.atan2(Math.sin(v.aim), Math.cos(v.aim)) : undefined,
-    independentAim: v.independentAim === true};
+    independentAim: v.independentAim === true,
+    ...(v.bufferedFire === true && v.fire === true ? {bufferedFire:true} : {}),
+    ...(v.cancelBufferedFire === true ? {cancelBufferedFire:true} : {})};
 }

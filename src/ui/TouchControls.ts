@@ -4,6 +4,7 @@ import { label } from '../rendering/draw.js';
 export class TouchControls {
   readonly state:TouchState; private enabled=false; private container:Phaser.GameObjects.Container;
   private art:Phaser.GameObjects.Graphics; private cooldown=0;
+  private fireLabel:Phaser.GameObjects.Text;
   constructor(scene:Phaser.Scene,private dual=true) {
     this.state=new TouchState(dual);this.container=scene.add.container(0,0).setDepth(14);this.art=scene.add.graphics();
     const zone=(cx:number,aim:boolean)=>{
@@ -15,21 +16,25 @@ export class TouchControls {
         else this.state.beginStick(p.id,(p.x-162)/70,(p.y-562)/70);
       });return z;
     };
+    this.fireLabel=label(scene,1118,689,dual?'RELEASE TO FIRE':'FIRE',22,'#ffc7a9').setOrigin(.5);
     this.container.add([this.art,zone(162,false),zone(1118,true),
       label(scene,162,689,'MOVE',22,'#9ddacf').setOrigin(.5),
-      label(scene,1118,689,dual?'RELEASE TO FIRE':'FIRE',22,'#ffc7a9').setOrigin(.5)]);
+      this.fireLabel]);
     const move=(pointer:Phaser.Input.Pointer)=>{if(!this.enabled||!pointer.isDown)return;const p={...scene.cameras.main.getWorldPoint(pointer.x,pointer.y),id:pointer.id};this.state.moveStick(p.id,(p.x-162)/70,(p.y-562)/70);this.state.moveAim(p.id,(p.x-1118)/70,(p.y-562)/70);};
     const release=(p:Phaser.Input.Pointer)=>this.state.release(p.id),clear=()=>this.state.clear();
-    scene.input.on('pointermove',move);scene.input.on('pointerup',release);scene.input.on('pointerupoutside',clear);scene.input.on('gameout',clear);
+    // A release outside the canvas still belongs to that finger. Browser cancellation
+    // and pause clear everything; moving either finger out must not cancel the other.
+    scene.input.on('pointermove',move);scene.input.on('pointerup',release);scene.input.on('pointerupoutside',release);
     scene.game.canvas.addEventListener('pointercancel',clear);scene.game.canvas.addEventListener('touchcancel',clear);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
-      scene.input.off('pointermove',move);scene.input.off('pointerup',release);scene.input.off('pointerupoutside',clear);scene.input.off('gameout',clear);
+      scene.input.off('pointermove',move);scene.input.off('pointerup',release);scene.input.off('pointerupoutside',release);
       scene.game.canvas.removeEventListener('pointercancel',clear);scene.game.canvas.removeEventListener('touchcancel',clear);clear();
     });
   }
   setReload(fraction:number):void {this.cooldown=Math.max(0,Math.min(1,fraction));}
   update(enabled:boolean,highlight?:TouchAction):void {
     this.enabled=enabled;this.container.setVisible(enabled);if(!enabled)this.state.clear();
+    this.fireLabel.setText(this.state.shotQueued?'SHOT QUEUED':this.dual?'RELEASE TO FIRE':'FIRE');
     const g=this.art.clear();
     for(const [cx,aim] of [[162,false],[1118,true]] as const) {
       const p=aim?this.state.aimPosition:this.state.stickPosition,c=aim?0xffc78e:0x69f4df,active=aim?(this.dual?p.held:this.state.down('fire')):p.held;

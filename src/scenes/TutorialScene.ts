@@ -59,7 +59,7 @@ export class TutorialScene extends Phaser.Scene {
   if(!pause.paused)this.clock.advance(delta/1000,()=>{
    this.seconds+=C.PHYSICS_DT;this.stageTime+=C.PHYSICS_DT;
    const k=this.keys,touch=this.touch?.state.control()??IDLE_CONTROL;
-   const fire=k.SPACE.isDown||touch.fire||this.firing||this.pending;this.pending=false;this.touch?.state.consumeFire();
+   const fire=k.SPACE.isDown||touch.fire||this.firing||this.pending;this.pending=false;
    const a=this.mouse?Math.atan2(this.mouse.y-this.ship.y,this.mouse.x-this.ship.x):undefined;
    const control=this.modern?(device.touch?touch:pilotInput(Number(k.D.isDown)-Number(k.A.isDown),Number(k.S.isDown)-Number(k.W.isDown),a,fire)):
     {...touch,turn:Number(k.D.isDown)-Number(k.A.isDown)+touch.turn,thrust:Number(k.W.isDown)-Number(k.S.isDown)+touch.thrust,fire};
@@ -71,7 +71,7 @@ export class TutorialScene extends Phaser.Scene {
     const drill=!this.modern&&device.touch&&control.move
      ?{...control,independentAim:true,aim:Math.atan2(control.move.y,control.move.x)}:control;
     this.ship.update(C.PHYSICS_DT,{...drill,move:undefined,thrust:0,fire:false},bodies,this.seconds);
-    if(fire&&this.ship.cooldown<=0){this.bullets.push({...createProjectile(this.ship),trail:[]});this.ship.cooldown=C.FIRE_COOLDOWN;sound.play('shot');}
+    if(fire&&this.ship.cooldown<=0){this.bullets.push({...createProjectile(this.ship),trail:[]});this.ship.cooldown=C.FIRE_COOLDOWN;this.touch?.state.consumeFire();sound.play('shot');}
     const survivors:Bullet[]=[];let hit=false;
     for(const b of this.bullets){
      b.trail.push({x:b.x,y:b.y});if(b.trail.length>70)b.trail.shift();

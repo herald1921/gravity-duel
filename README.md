@@ -1,4 +1,4 @@
-# Gravity Duel — v0.12.3 playtest
+# Gravity Duel — v0.12.4 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
 Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
@@ -14,7 +14,7 @@ Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
 - Bosses: four/six/eight-cannon patterns, visible warnings, locked aim before firing, recovery windows, 3/4/5 core health. Later bosses alternate lasers. Bosses ignore their own projectiles; normal pilots still risk returning fire. The player starts with a shield.
 - AI: beginner ramp only in the first unit; later units retain full tactics. Movement candidates are projected through the same ship physics, moving-body collisions, gravity, neutron beams and wormholes used in live combat. Existing pickup strategies and coordinated squad pressure remain.
 - Desktop: WASD movement, mouse aim, click/Space fire. P/Esc pause, R retry. Only independent movement and aiming are available. Old classic-control preferences load as modern controls; the old same-keyboard duel is disabled at scene entry.
-- Phone: left stick moves, right stick aims; **release to shoot once**. Return the right stick to center before releasing to cancel. Touch cancellation, pause and focus loss clear pending fire. Guidance lines require the pickup outside flight school.
+- Phone: left stick moves, right stick aims; **release to shoot once**. A release during reload waits for one available shot instead of disappearing; starting a new aim cancels that pending shot. Return the right stick to center before releasing to cancel. Touch cancellation, pause and focus loss clear pending fire. Guidance lines require the pickup outside flight school.
 - Graphics: 2560×1440 render buffer with a fixed 1280×720 world and sharper text. Input is converted through the camera so scaling does not change aim or touch positions.
 
 Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to the same original levels; added bosses start uncleared. Original saves are never overwritten. **CAMPAIGN → PRACTICE ALL** opens every arena without advancing campaign completion.
