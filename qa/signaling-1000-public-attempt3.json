@@ -1,0 +1,8 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "status": "FAILED",
+  "preparedRooms": 309,
+  "connectRetries": 16,
+  "failures": 2,
+  "error": "Error: Client network socket disconnected before secure TLS connection was established"
+}

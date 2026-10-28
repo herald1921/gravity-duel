@@ -1,0 +1,38 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "trafficScope": "JSON application bytes only; excludes WebSocket framing, heartbeat control frames, TLS, HTTP and handshake overhead",
+  "location": "public service",
+  "rooms": 100,
+  "playersPerRoom": 4,
+  "durationSeconds": 31.204,
+  "activeAtEnd": 100,
+  "connectionsAtEnd": 400,
+  "failures": 0,
+  "unexpectedHostChanges": 0,
+  "signalPackets": 600,
+  "pingSamples": 40,
+  "pingMs": {
+    "p50": 451,
+    "p95": 508,
+    "p99": 508,
+    "max": 508
+  },
+  "cpuCores": 0.0022166709396231263,
+  "rssMB": 71,
+  "brokerOutboundMBPerHour": 0.16613254710934494,
+  "health": {
+    "ok": true,
+    "version": "0.12.1",
+    "architecture": "peer-hosted",
+    "rooms": 100,
+    "active": 100,
+    "peers": 400,
+    "cpuSeconds": 0.938431,
+    "uptime": 261.077308475,
+    "rssMB": 71,
+    "outboundBytes": 1743434,
+    "inboundBytes": 1303504,
+    "relayBytes": 0,
+    "relayDailyLimitMB": 32
+  }
+}

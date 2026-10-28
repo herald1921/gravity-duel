@@ -1,0 +1,38 @@
+name: Public signaling capacity (not gameplay)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-signaling-capacity
+  cancel-in-progress: false
+
+jobs:
+  capacity:
+    if: github.repository == 'herald1921/gravity-duel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --prefix server --omit=dev
+      - name: Warm service and require an empty test window
+        run: |
+          node --input-type=module -e "const h=await(await fetch('https://gravity-duel-online.onrender.com/health',{signal:AbortSignal.timeout(90000)})).json(); console.log(h); if(h.peers||h.rooms)throw Error('Service has live rooms. Retry in an empty test window.');"
+      - name: Hold 1000 four-player signaling rooms for ten minutes
+        run: node server/benchmark-signaling.mjs 1000 600 wss://gravity-duel-online.onrender.com
+      - name: Preserve capacity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signaling-capacity-report
+          path: |
+            qa/signaling-1000-public.json
+            qa/signaling-1000-public-failed.json
+          retention-days: 7
+          if-no-files-found: warn
