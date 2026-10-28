@@ -31,12 +31,12 @@ test('actual match projectile follows independent cannon direction while hull fa
 test('two touch sticks retain distinct pointers and releasing fire preserves movement',()=>{
  const s=new TouchState(true);assert.ok(s.beginStick(1,-1,0));assert.ok(s.beginAim(2,0,-1));
  assert.equal(s.beginAim(3,1,0),false);assert.equal(s.beginStick(2,1,0),false);
- assert.equal(s.control().aim,-Math.PI/2);assert.equal(s.control().fire,true);assert.equal(s.control().move.x,-1);
- s.release(2);assert.equal(s.control().fire,false);assert.equal(s.control().aim,-Math.PI/2);assert.equal(s.control().move.x,-1);
+ assert.equal(s.control().aim,-Math.PI/2);assert.equal(s.control().fire,false);assert.equal(s.control().move.x,-1);
+ s.release(2);assert.equal(s.control().fire,true);s.consumeFire();assert.equal(s.control().fire,false);assert.equal(s.control().aim,-Math.PI/2);assert.equal(s.control().move.x,-1);
 });
 test('touch deadzone does not fire and pause cancellation cannot leave a stuck shot',()=>{
  const s=new TouchState(true);s.beginAim(2,.1,.1);assert.equal(s.control().fire,false);
- s.moveAim(2,1,0);assert.equal(s.control().fire,true);s.clear();s.moveAim(2,1,0);
+ s.moveAim(2,1,0);assert.equal(s.control().fire,false);s.clear();s.moveAim(2,1,0);
  assert.equal(s.control().fire,false);assert.equal(s.control().aim,undefined);assert.equal(s.aimPosition.held,false);
 });
 test('portal rotates hull and cannon by the same angle preserving their relative orientation',()=>{

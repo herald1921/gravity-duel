@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { OnlineClient } from '../net/OnlineClient.js';
+import { onlineMap, applySnapshot, type Snapshot } from '../game/OnlineRuntime.js';
 import * as C from '../config.js';
 import { SpaceAI } from '../ai/SpaceAI.js';
 import { difficultyFor } from '../ai/Difficulty.js';
@@ -28,6 +30,7 @@ import { TouchControls } from '../ui/TouchControls.js';
 import { pilotInput } from '../input/PilotInput.js';
 type Keys = Record<'W' | 'A' | 'S' | 'D' | 'SPACE' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'ENTER', Phaser.Input.Keyboard.Key>;
 export class GameScene extends Phaser.Scene {
+  private online?: OnlineClient; private localId = 1; private netInputIn=0; private netSeen?: Snapshot; private netStatus?: Phaser.GameObjects.Text;
   private mode: GameMode = '1p'; private mapId = 'classic-orbit'; private arcadeIndex: number | null = null;
   private match!: Match; private ai!: SpaceAI; private planner?: TrajectoryPlanner; private clock = new FixedClock(); private keys!: Keys; private touch?: TouchControls;
   private debug = C.DEBUG; private visualTime = 0; private previewIn = 0; private pulseIn = 0; private acted = false; private transitioning = false;
@@ -42,26 +45,27 @@ export class GameScene extends Phaser.Scene {
   private neutronLabels: { id: string; text: Phaser.GameObjects.Text }[] = [];
   private effects!: GameEffects; private hud!: GameHUD;
   constructor() { super('Game'); }
-  init(data: { mode?: GameMode; mapId?: string; arcadeIndex?: number }): void {
+  init(data: { mode?: GameMode; mapId?: string; arcadeIndex?: number; online?: OnlineClient }): void {
+    this.online=data.online;this.localId=data.online?.id??1;this.netSeen=undefined;this.netInputIn=0;
     this.mode = data.mode === '2p' && !device.touch ? '2p' : '1p';
     this.arcadeIndex = this.mode === '1p' && Number.isInteger(data.arcadeIndex) ? Math.max(0, Math.min(ARCADE.length - 1, data.arcadeIndex!)) : null;
     this.mapId = this.arcadeIndex === null ? data.mapId ?? 'classic-orbit' : ARCADE[this.arcadeIndex].mapId;
   }
   create(): void {
-    this.modern = this.mode === '1p' && profile.data.controls === 'modern'; this.mouseFire = false; this.mouseAim = undefined;
+    this.modern = !!this.online || this.mode === '1p' && (device.touch || profile.data.controls === 'modern'); this.mouseFire = false; this.mouseAim = undefined;
     this.generation++; this.transitioning = false; this.savedResult = false; this.wasJammed = false;
     if (this.arcadeIndex !== null) profile.begin(this.arcadeIndex);
-    const map = getMap(this.mapId);
-    const playable = device.touch && map.player1Spawn.x < 300 && map.player1Spawn.y > 480 ?
+    const map = this.online?.room ? onlineMap(this.online.room.mapId,this.online.room.mode) : getMap(this.mapId);
+    const playable = !this.online && device.touch && map.player1Spawn.x < 300 && map.player1Spawn.y > 480 ?
       { ...map, player1Spawn: { ...map.player1Spawn, x: 235, y: 400 } } : map;
     const levelIndex = this.arcadeIndex ?? map.campaignIndex;
-    this.match = new Match(this.mode === '2p' ? { ...playable, extraEnemySpawns: [] } : playable, levelIndex === undefined ? C.FIRST_TO_SCORE : ARCADE[levelIndex].targetScore);
-    this.planner = this.mode === '1p' ? new TrajectoryPlanner() : undefined;
+    this.match = new Match(this.mode === '2p' ? { ...playable, extraEnemySpawns: [] } : playable, this.online ? 3 : levelIndex === undefined ? C.FIRST_TO_SCORE : ARCADE[levelIndex].targetScore);
+    this.planner = !this.online && this.mode === '1p' ? new TrajectoryPlanner() : undefined;
     const difficulty = map.campaignIndex === undefined ? undefined : difficultyFor(map.campaignIndex);
     this.ais = this.match.ships.slice(1).map(() => new SpaceAI(Math.random, this.planner?.request, difficulty));
     this.fireGates = this.ais.map(() => new OpeningFireGate(this.mode === '1p' ? this.arcadeIndex : null, difficulty));
     this.ai = this.ais[0]; this.ais.forEach(ai => ai.reset());
-    this.squad = this.mode === '1p' && this.ais.length > 1 && !this.match.freeForAll ? new SquadCoordinator(map.campaignIndex ?? 8) : undefined;
+    this.squad = !this.online && this.mode === '1p' && this.ais.length > 1 && !this.match.freeForAll && !this.match.boss ? new SquadCoordinator(map.campaignIndex ?? 8) : undefined;
     this.rivalSelectors = this.ais.map(() => new RivalSelector());
     this.clock.reset();
     this.debug = C.DEBUG; this.visualTime = 0; this.previewIn = 0; this.pulseIn = 0; this.acted = false;
@@ -79,15 +83,17 @@ export class GameScene extends Phaser.Scene {
     this.hud = new GameHUD(this, this.mode, this.match, this.arcadeIndex, {
       pause: () => this.togglePause(), resume: () => this.resume(), restart: () => this.restartArena(), menu: () => this.goMenu(),
       next: () => { void this.nextArena(); }, again: () => { void this.returnToGame(() => this.scene.restart({ mode: '1p', arcadeIndex: 0 })); },
-    });
+    }, this.online);
+    if(this.online)this.netStatus=label(this,640,103,'ONLINE',18,'#70e9d4').setOrigin(.5).setDepth(20);
     this.shipLabels = this.match.ships.map(ship => label(this, ship.x, ship.y + 33, '', 22, '#' + playerColor(ship.id).toString(16)).setOrigin(0.5).setDepth(3));
     this.orbitLabels = this.match.ships.map(({id}) => label(this, 0, 0, id > 1 && this.mode === '1p' ? 'AI ORBIT' : 'P' + id + ' ORBIT', 14, '#b6ff74')
       .setOrigin(0.5).setDepth(6).setBackgroundColor('#0b1825dd').setPadding(4, 3).setVisible(false));
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,UP,DOWN,LEFT,RIGHT,ENTER') as Keys;
     this.touch = device.touch ? new TouchControls(this,this.modern) : undefined;
-    const aim = (p:Phaser.Input.Pointer) => { if (this.modern && !device.touch && p.y > 100 && p.y < 680) this.mouseAim = {x:p.x,y:p.y}; };
-    const down = (p:Phaser.Input.Pointer, objects:Phaser.GameObjects.GameObject[]) => {
-      if (!pause.paused && !this.transitioning && this.modern && !device.touch && objects.length === 0 && p.y > 100 && p.y < 680 && p.leftButtonDown()) { aim(p); this.mouseFire = true; this.pendingFire[0] = true; }
+    const aim = (pointer:Phaser.Input.Pointer) => { const p = this.cameras.main.getWorldPoint(pointer.x,pointer.y); if (this.modern && !device.touch && p.y > 100 && p.y < 680) this.mouseAim = {x:p.x,y:p.y}; };
+    const down = (pointer:Phaser.Input.Pointer, objects:Phaser.GameObjects.GameObject[]) => {
+      const p = this.cameras.main.getWorldPoint(pointer.x,pointer.y);
+      if (!pause.paused && !this.transitioning && this.modern && !device.touch && objects.length === 0 && p.y > 100 && p.y < 680 && pointer.leftButtonDown()) { aim(pointer); this.mouseFire = true; this.pendingFire[0] = true; }
     };
     const up = () => { this.mouseFire = false; };
     this.input.on('pointermove',aim); this.input.on('pointerdown',down); this.input.on('pointerup',up); this.input.on('pointerupoutside',up); this.input.on('gameout',up);
@@ -115,13 +121,14 @@ export class GameScene extends Phaser.Scene {
     const unsubscribe = pause.subscribe(onPause); onPause();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointermove',aim);this.input.off('pointerdown',down);this.input.off('pointerup',up);this.input.off('pointerupoutside',up);this.input.off('gameout',up);
-      this.generation++; unsubscribe(); this.planner?.destroy(); this.input.off('pointerdown', focus);
+      this.online?.close();this.generation++; unsubscribe(); this.planner?.destroy(); this.input.off('pointerdown', focus);
       this.input.keyboard?.resetKeys(); if (this.input.keyboard) this.input.keyboard.enabled = true;
       this.touch?.state.clear(); this.effects.clear(); this.clock.reset(); platform.setGameplay(false); sound.stopAll(); pause.set('manual', false);
     });
     this.hud.update(this.match, this.debug, 60);
   }
   private restartArena(): void {
+    if(this.online){this.online.send({type:'rematch'});return;}
     if (this.transitioning || pause.has('ad')) return;
     void this.returnToGame(() => this.scene.restart(this.arcadeIndex === null ? { mode: this.mode, mapId: this.mapId } : { mode: '1p', arcadeIndex: this.arcadeIndex }));
   }
@@ -147,7 +154,7 @@ export class GameScene extends Phaser.Scene {
     const k = this.keys, touch = this.touch?.state.control() ?? IDLE_CONTROL;
     if (player === 1 && this.modern) {
       if (device.touch) return {...touch,independentAim:true,fire:touch.fire||this.pendingFire[0]};
-      const ship = this.match.ships[0], a = this.mouseAim ? Math.atan2(this.mouseAim.y-ship.y,this.mouseAim.x-ship.x) : undefined;
+      const ship = this.match.ships[this.localId-1], a = this.mouseAim ? Math.atan2(this.mouseAim.y-ship.y,this.mouseAim.x-ship.x) : undefined;
       return pilotInput(Number(k.D.isDown)-Number(k.A.isDown),Number(k.S.isDown)-Number(k.W.isDown),a,this.mouseFire||k.SPACE.isDown||this.pendingFire[0]);
     }
     return player === 1 ?
@@ -156,6 +163,7 @@ export class GameScene extends Phaser.Scene {
       { turn: Number(k.RIGHT.isDown) - Number(k.LEFT.isDown), thrust: Number(k.UP.isDown) - Number(k.DOWN.isDown), fire: k.ENTER.isDown || this.pendingFire[1] };
   }
   update(_time: number, delta: number): void {
+    if(this.online){this.updateOnline(delta);return;}
     if (!pause.paused && !this.transitioning) this.clock.advance(delta / 1000, () => {
       this.visualTime += C.PHYSICS_DT; this.hud.tick(C.PHYSICS_DT);
       const first = this.humanControl(1), humanSecond = this.mode === '2p' ? this.humanControl(2) : IDLE_CONTROL;
@@ -165,11 +173,11 @@ export class GameScene extends Phaser.Scene {
       if (playing && this.acted) this.squad?.update(C.PHYSICS_DT, this.match.ships.slice(1), this.match.ships[0], this.match.map.bodies, this.match.time, this.match.pickups);
       const enemyControls = this.mode === '2p' ? [humanSecond] : this.ais.map((ai, i) => {
         const ship = this.match.ships[i + 1];
-        if (!playing || !this.acted || !ship.alive) return IDLE_CONTROL;
+        if (!playing || !this.acted || !ship.alive || this.match.boss) return IDLE_CONTROL;
         const target = this.match.freeForAll ? this.rivalSelectors[i].select(C.PHYSICS_DT, ship, this.match.ships, this.match.map.bodies, this.match.time) : this.match.ships[0];
         if (!target) return IDLE_CONTROL;
         const control = ai.update(C.PHYSICS_DT, ship, target, this.match.map.bodies,
-          { time: this.match.time, wormholes: this.match.map.wormholes }, this.match.pickups, this.match.bullets, this.match.freeForAll ? [] : this.match.ships.slice(1), this.squad?.orders.get(ship.id));
+          { time: this.match.time, wormholes: this.match.map.wormholes, shipGravity: this.match.map.shipGravity }, this.match.pickups, this.match.bullets, this.match.freeForAll ? [] : this.match.ships.slice(1), this.squad?.orders.get(ship.id));
         return control;
       });
       if (this.mode === '1p' && playing && this.acted) {
@@ -200,8 +208,20 @@ export class GameScene extends Phaser.Scene {
     this.previewIn -= Math.min(delta / 1000, 0.1);
     this.drawWorld(); this.effects.draw(); this.drawDebug(); this.hud.update(this.match, this.debug, this.game.loop.actualFps);
   }
-  private processEvents(): void {
-    for (const event of this.match.drainEvents()) {
+  private updateOnline(delta:number):void {
+    const client=this.online!, dt=Math.min(.1,delta/1000);this.visualTime+=dt;this.hud.tick(dt);this.netInputIn-=dt;
+    if(this.netInputIn<=0){this.netInputIn=1/30;client.input(pause.paused||!client.healthy?{...IDLE_CONTROL,independentAim:true}:this.humanControl(1));this.pendingFire=[false,false];this.touch?.state.consumeFire();}
+    const state=client.snapshot;
+    if(state&&state!==this.netSeen){this.netSeen=state;this.processEvents(state.events);}
+    const rendered=client.renderState();if(rendered)applySnapshot(this.match,rendered);
+    this.netStatus?.setText(client.healthy?'ONLINE · P'+this.localId+' · '+client.latency+' ms':client.status);
+    this.effects.update(dt,this.match.ships,this.match.phase==='playing');this.previewIn-=dt;
+    this.touch?.update(!pause.paused&&client.healthy&&this.match.phase==='playing');this.touch?.setReload(this.match.ships[this.localId-1].cooldown/C.FIRE_COOLDOWN);
+    platform.setGameplay(client.healthy&&this.match.phase==='playing'&&!pause.paused);
+    this.drawWorld();this.effects.draw();this.hud.update(this.match,false,this.game.loop.actualFps);
+  }
+  private processEvents(events=this.match.drainEvents()): void {
+    for (const event of events) {
       if (event.type === 'shot') {
         if (event.owner > 1) this.squad?.recordShot(event.owner, this.match.time);
         sound.play(event.kind === 'homing' ? 'missileFire' : event.kind === 'orbital' ? 'orbitalFire' : 'shot'); this.effects.flash(event.position, playerColor(event.owner));
@@ -229,7 +249,7 @@ export class GameScene extends Phaser.Scene {
       else if (event.type === 'mechanic') {
         if (event.sound === 'laserCharge' && event.owner && event.owner > 1) this.squad?.reserveShot(event.owner, this.match.time);
         sound.play(event.sound);
-        if (event.pickupType) this.hud.announce((event.owner === 1 ? (this.mode === '1p' ? '' : 'P1 · ') : this.mode === '1p' ? 'AI · ' : 'P2 · ') +
+        if (event.pickupType) this.hud.announce((this.online && event.owner ? this.hud.name(event.owner)+' · ' : event.owner === 1 ? (this.mode === '1p' ? '' : 'P1 · ') : this.mode === '1p' ? 'AI · ' : 'P2 · ') +
           POWERUP_NAMES[event.pickupType] + (event.pickupType === 'shield' ? ' ACTIVE' : ' READY'), '#' + POWERUP_COLORS[event.pickupType].toString(16));
         if (event.pickupType && event.owner === 1) this.hud.announce(POWERUP_HELP[event.pickupType], '#' + POWERUP_COLORS[event.pickupType].toString(16));
         this.effects.flash(event.position, event.sound === 'orbitLock' ? 0xb6ff74 : event.sound === 'shieldBreak' ? 0x75d9ff : 0xc0a1ff, event.sound === 'shieldBreak');
@@ -239,6 +259,19 @@ export class GameScene extends Phaser.Scene {
   }
   private drawWorld(): void {
     const t = this.match.time, g = this.actors.clear();
+    if (this.match.boss) {
+      const boss = this.match.boss, ship = this.match.ships[1];
+      if (ship.alive) {
+        const color = boss.phase === 'recover' ? 0x69f4df : 0xffb96e;
+        g.lineStyle(3, color, 0.8).strokeCircle(ship.x, ship.y, 43);
+        for (let i = 0; i < ship.maxHP; i++) g.fillStyle(i < ship.hp ? color : 0x354454).fillRect(ship.x - ship.maxHP * 9 + i * 18, ship.y - 60, 13, 7);
+        if (boss.phase === 'warning') for (let i = 0; i < (boss.laser ? 1 : boss.rays); i++) {
+          const a = boss.angle + i * Math.PI * 2 / boss.rays;
+          g.lineStyle(boss.laser ? 3 : 1.5, 0xffb96e, 0.35).lineBetween(ship.x + Math.cos(a) * 46, ship.y + Math.sin(a) * 46, ship.x + Math.cos(a) * 260, ship.y + Math.sin(a) * 260);
+        }
+      }
+    }
+    for (const ship of this.match.ships) if (ship.alive && ship.invulnerableFor > 0) g.lineStyle(2, 0xc4edff, 0.5).strokeCircle(ship.x, ship.y, ship.radius + 9);
     this.guide.setVisible(this.onboarding && this.match.time < C.ONBOARDING_TIME && !pause.paused);
     this.bodies.clear();
     for (const body of this.match.map.bodies) drawOrbit(this.bodies, body, t);
@@ -252,7 +285,7 @@ export class GameScene extends Phaser.Scene {
     if (this.previewIn <= 0) {
       this.previewIn = 1 / (device.touch ? 20 : 30); this.previews.clear();
       if (this.match.phase === 'ready' || this.match.phase === 'playing') for (const ship of this.match.ships) {
-        if (!ship.alive || ship.aimAssistFor <= 0 || (this.mode === '1p' && ship.id !== 1)) continue;
+        if (!ship.alive || ship.aimAssistFor <= 0 || (this.mode === '1p' && ship.id !== this.localId)) continue;
         if (ship.specialShot === 'laser' || ship.laserCharge) {
           const beam = traceLaser(ship, this.match.map.bodies, this.match.ships, t, ship.laserCharge?.angle);
           this.previews.lineStyle(1, 0xffcf70, 0.3).lineBetween(beam.start.x, beam.start.y, beam.end.x, beam.end.y);
@@ -297,7 +330,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.match.ships.forEach((ship, i) => {
-      this.shipLabels[i].setText(ship.jammedFor > 0 ? 'JAMMED' : this.mode === '1p' ? ship.id===1?'YOU':this.squad?.orders.get(ship.id)?.role ?? this.hud.name(ship.id) : 'P' + ship.id)
+      this.shipLabels[i].setText(ship.jammedFor > 0 ? 'JAMMED' : this.online ? this.hud.name(ship.id)+(this.match.map.teams&&ship.id!==this.localId&&this.match.team(ship.id as 1|2|3|4)===this.match.team(this.localId as 1|2|3|4)?' · ALLY':'') : this.mode === '1p' ? ship.id===1?'YOU':this.squad?.orders.get(ship.id)?.role ?? this.hud.name(ship.id) : 'P' + ship.id)
         .setPosition(ship.x, Math.min(C.ARENA_BOUNDS.bottom-8, ship.y + 42)).setVisible(ship.alive && !pause.paused);
       if (!ship.alive) return;
       if (lockedTargets.has(ship.id)) {
@@ -314,7 +347,12 @@ export class GameScene extends Phaser.Scene {
         g.lineStyle(2, 0xffcf70, 0.65 + Math.sin(this.visualTime * 18) * 0.25).strokeCircle(ship.x, ship.y, 31);
         if (ship.jammedFor <= 0 && !lockedTargets.has(ship.id)) this.shipLabels[i].setText((this.squad?.orders.get(ship.id)?.role ?? this.hud.name(ship.id)) + ' · AIMING');
       }
-      if (ship.jammedFor <= 0 || Math.floor(this.visualTime * 24) % 4 !== 0) drawShip(g, ship, this.visualTime, ship.id === 1 ? profile.paintColor : undefined);
+      if(this.match.boss&&ship.id===2){
+        const color=this.match.boss.phase==='recover'?0x69f4df:0xffb96e;g.save().translateCanvas(ship.x,ship.y).rotateCanvas(this.match.boss.angle);
+        for(let j=0;j<this.match.boss.rays;j++){g.save().rotateCanvas(j*Math.PI*2/this.match.boss.rays);g.fillStyle(0x183246).lineStyle(1.5,color,.85).fillRoundedRect(15,-8,28,16,3).strokeRoundedRect(15,-8,28,16,3);g.fillStyle(color).fillRect(35,-5,8,10);g.restore();}
+        g.fillStyle(0x102636).lineStyle(2,color).fillCircle(0,0,28).strokeCircle(0,0,28).fillStyle(color,.2).fillCircle(0,0,21).fillStyle(color).fillCircle(0,0,11+Math.sin(t*5)*2);g.restore();
+      }else if (ship.jammedFor <= 0 || Math.floor(this.visualTime * 24) % 4 !== 0) drawShip(g, ship, this.visualTime, ship.id === 1 ? profile.paintColor : undefined);
+      if (this.match.boss && ship.id === 2) { this.shipLabels[i].setText(this.match.boss.phase === 'recover' ? 'CORE EXPOSED' : this.match.boss.laser ? 'LASER WARNING' : 'VOLLEY WARNING'); }
       if (ship.shield) g.lineStyle(2.5, 0x75d9ff, 0.8).strokeCircle(ship.x, ship.y, 29).fillStyle(0x75d9ff, 0.07).fillCircle(ship.x, ship.y, 29);
       if (ship.laserCharge) {
         const progress = 1 - ship.laserCharge.remaining / C.LASER_CHARGE_TIME;

@@ -229,10 +229,10 @@ test('pickup cadence/cap and round cleanup remain bounded; orbital lab introduce
   assert.equal(match.time, 0); assert.equal(match.pickups.length, 0); assert.equal(match.bullets.length, 0);
   assert.ok(match.ships.every(s => !s.shield && !s.specialShot && !s.laserCharge));
 });
-test('arcade progression visits all 27 campaign arenas once and stops at completion', () => {
+test('arcade progression visits all 30 campaign arenas once and stops at completion', () => {
   let i = 0, visited = [ARCADE[0].mapId];
   while (nextArena(i) !== null) { i = nextArena(i); visited.push(ARCADE[i].mapId); }
-  assert.equal(visited.length, 27); assert.equal(new Set(visited).size, 27); assert.equal(nextArena(26), null);
+  assert.equal(visited.length, 30); assert.equal(new Set(visited).size, 30); assert.equal(nextArena(29), null);
 });
 test('simultaneous touch pointers remain independent and cancellation clears all actions', () => {
   const touch = new TouchState(); touch.press(1, 'left'); touch.press(2, 'thrust'); touch.press(3, 'fire');

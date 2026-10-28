@@ -6,3 +6,5 @@ qa/preview-*.error.log
 qa/*.jpg
 baseline-v081-sha256.json
 
+.server-build/
+qa/*.cpuprofile

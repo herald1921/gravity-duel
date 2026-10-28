@@ -1,0 +1,12 @@
+v0.12.0 verification
+- 177 regression and feature tests passed (qa/v0120-tests.txt).
+- Additional optimization equivalence checks are in tests/performance-equivalence.test.mjs.
+- server-smoke: friend rooms, authoritative 2v2, bounded input, reconnect and random matchmaking passed with separate WebSocket clients.
+- Browser: 2560x1440 render canvas displayed at 1280x720; menu/selector pointer mapping worked; all 13 unit-three cards fit.
+- Browser: extra unit-one boss entered, fired warned volleys and displayed recovery; no console errors observed.
+- Browser: two clients entered the same 2v2 room; phone-control mode at 844x390 moved P2 and fired on stick release; no console errors observed.
+- All three bosses stayed alive and fired during a 30-second physics probe against an invulnerable stationary target.
+- Public online deployment and real-phone multitouch/internet latency are not yet verified.
+- Preserved previous offline SHA256: 75BC65EC9DB8D643FE0E17A0953B51F625F62DBB255885EA4DA8016888DF26D6.
+- Previous source tagged v0.11.1-playtest at 46cdf5ed69019516a31708c275a18ca422d513e2; previous web folder unchanged.
+- Local CPU benchmark is not a Render capacity guarantee. 100-room current authoritative simulation exceeds the 0.1 CPU budget substantially; raw measurements are in benchmark-100-after.json. Further architecture decision pending.

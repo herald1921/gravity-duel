@@ -14,20 +14,20 @@ import { steerHoming, segmentCircleContact } from '../.test-build/physics/gravit
 import * as C from '../.test-build/config.js';
 import { Profile, SAVE_KEY } from '../.test-build/platform/Profile.js';
 const dt=C.PHYSICS_DT, idle=[IDLE_CONTROL,IDLE_CONTROL,IDLE_CONTROL];
-const ffa=()=>new Match({...CAMPAIGN_MAPS[4],bodies:[],wormholes:[],powerUps:[],
+const ffa=()=>new Match({...CAMPAIGN_MAPS[4],scoreMode:undefined,bodies:[],wormholes:[],powerUps:[],
   player1Spawn:{x:150,y:550,angle:0},player2Spawn:{x:700,y:300,angle:0},extraEnemySpawns:[{x:940,y:300,angle:Math.PI}]},3);
 
-test('all 27 arenas have distinct physical layouts, with no renamed copies',()=>{
+test('all 30 arenas have distinct physical layouts, with no renamed copies',()=>{
   const signatures=CAMPAIGN_MAPS.map(m=>JSON.stringify(m.bodies.map(b=>({type:b.type,x:b.x,y:b.y,radius:b.radius,motion:b.motion})).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))));
-  assert.equal(new Set(signatures).size,27);
+  assert.equal(new Set(signatures).size,30);
   for(let unit=0;unit<3;unit++){
-    const maps=CAMPAIGN_MAPS.filter(m=>m.unitIndex===unit), count=[6,9,12][unit];
+    const maps=CAMPAIGN_MAPS.filter(m=>m.unitIndex===unit), count=[7,10,13][unit];
     assert.equal(maps.length,count);assert.equal(new Set(maps.map(m=>m.description)).size,count);
-    assert.equal(maps.at(-2).combat,'freeForAll'); assert.equal(maps.at(-1).combat,'squad');
-    for(const m of maps.slice(-2))assert.equal(m.extraEnemySpawns.length,1);
+    assert.equal(maps.at(-3).combat,'freeForAll'); assert.equal(maps.at(-2).combat,'squad');
+    assert.equal(maps.at(-3).extraEnemySpawns.length,2);assert.equal(maps.at(-2).extraEnemySpawns.length,1);assert.equal(maps.at(-1).boss,unit);assert.equal(maps.at(-1).extraEnemySpawns.length,0);
   }
-  for(const map of CAMPAIGN_MAPS.slice(0,16))assert.equal(map.wormholes,undefined,map.id);
-  for(const map of CAMPAIGN_MAPS.slice(16))assert.equal(map.wormholes.length,map.id==='unit-3-10'?4:2);
+  for(const map of CAMPAIGN_MAPS.slice(0,18))assert.equal(map.wormholes,undefined,map.id);
+  for(const map of CAMPAIGN_MAPS.slice(18))assert.equal(map.wormholes.length,map.id==='unit-3-10'?4:2);
 });
 
 test('wormhole mouths remain clear of moving cores and each map offers accessible pickup sites',()=>{
@@ -115,10 +115,10 @@ test('switching FFA targets invalidates an older asynchronous aim request',()=>{
 test('6/9/12 campaign migration preserves completed identities and cosmetics without clearing new combinations',()=>{
   const old=JSON.stringify({version:1,runIndex:26,cleared:Array.from({length:27},(_,i)=>i),tutorialDone:true,music:false,sfx:true,badges:['portal'],paint:'amber',controls:'classic'});
   const values=new Map([['gravity-duel-campaign-v0100',old]]),store={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
-  const p=new Profile(()=>store);assert.equal(p.data.cleared.length,24);assert.equal(p.data.runIndex,22);
-  for(const i of [22,23,24])assert.ok(!p.data.cleared.includes(i));
+  const p=new Profile(()=>store);assert.equal(p.data.cleared.length,24);assert.equal(p.data.runIndex,6);
+  for(const i of [6,16,24,25,26,29])assert.ok(!p.data.cleared.includes(i));
   assert.equal(p.data.paint,'amber');assert.equal(p.data.music,false);assert.equal(p.data.controls,'classic');
-  p.clearArena(22);assert.equal(values.get('gravity-duel-campaign-v0100'),old);assert.ok(values.has(SAVE_KEY));assert.equal(new Profile(()=>store).data.cleared.length,25);
+  p.clearArena(6);assert.equal(values.get('gravity-duel-campaign-v0100'),old);assert.ok(values.has(SAVE_KEY));assert.equal(new Profile(()=>store).data.cleared.length,25);
 });
 
 test('each paired introductory lesson spawns both new powers before cycling older abilities',()=>{

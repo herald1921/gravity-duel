@@ -23,7 +23,22 @@ export function createBody(id: string, type: CelestialBodyType, x: number, y: nu
   return { ...body, collisionRadius, orbitCaptureRadius: overrides.orbitCaptureRadius ??
     (type === 'planet' || type === 'moon' ? collisionRadius + (type === 'moon' ? C.MOON_CAPTURE_PADDING : C.ORBIT_CAPTURE_PADDING) : undefined) };
 }
-export function bodyPosition(body: OrbitAnchor, time = 0): { x: number; y: number } {
+type Position = { x: number; y: number };
+let ephemeris: Map<OrbitAnchor, Map<number, Position>> | undefined;
+/** Exact-time, scoped memoization. No quantized time and no cache survives an operation. */
+export function withEphemeris<T>(run: () => T): T {
+  if (ephemeris) return run();
+  ephemeris = new Map();
+  try { return run(); } finally { ephemeris = undefined; }
+}
+export function bodyPosition(body: OrbitAnchor, time = 0): Position {
+  if (!ephemeris || !body.motion) return positionAt(body, time);
+  let times = ephemeris.get(body);
+  if (!times) { times = new Map(); ephemeris.set(body, times); }
+  const cached = times.get(time); if (cached) return cached;
+  const value = positionAt(body, time); times.set(time, value); return value;
+}
+function positionAt(body: OrbitAnchor, time: number): Position {
   if (!body.motion) return { x: body.x, y: body.y };
   const angle = body.motion.phase + time * Math.PI * 2 / body.motion.period;
   const center = body.motion.parent ? bodyPosition(body.motion.parent, time) : body;

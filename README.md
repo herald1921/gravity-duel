@@ -1,88 +1,80 @@
-# Gravity Duel
+# Gravity Duel — v0.12.0 playtest
 
-**Play online:** [v0.11.1 campaign](https://herald1921.github.io/gravity-duel/) · [previous v0.11.0](https://herald1921.github.io/gravity-duel/legacy-v0.11.0/) · [v0.10.1](https://herald1921.github.io/gravity-duel/legacy-v0.10.1/) · [v0.10](https://herald1921.github.io/gravity-duel/legacy-v0.10/) · [v0.9](https://herald1921.github.io/gravity-duel/legacy-v0.9/)
+Play: https://herald1921.github.io/gravity-duel/
+Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.11.1/
 
-Gravity Duel is a browser arcade game built with Phaser and TypeScript. Move through compact orbital arenas, aim independently, and bend projectiles around planets to defeat an AI rival.
+## Campaign and controls
 
-This repository contains the `v0.11.1` campaign playtest: 27 distinct arenas across units of 6, 9 and 12 levels. Each unit ends with a three-way free-for-all followed by a harder two-AI squad battle. Previous source tags, web builds and standalone HTML files are retained. Completed levels migrate by their retained identity; new combinations remain uncleared, and old saves are untouched.
+30 different arenas in **7 / 10 / 13** levels. The original 27 maps remain; each unit receives an additional, distinct boss arena. The last three levels of each unit are four-way free-for-all, **one player versus two coordinated AI**, then the new boss. Bosses are exclusive to solo play. No weapon upgrades.
 
-## v0.11.1 changes
+- Unit 1: planets and moons only; no ship gravity. The first three static lessons introduce all six pickups, then motion begins. Four-way FFA is 1-5, squad is 1-6, boss is 1-7.
+- Unit 2: stars and neutron stars, followed by moving binary/triple and hierarchical systems; no wormholes or ship gravity. FFA 2-8, squad 2-9, boss 2-10.
+- Unit 3: black holes and ship gravity; wormholes from 3-2. FFA 3-11, squad 3-12, boss 3-13.
+- FFA: player plus three mutually hostile AI, first to four kills, 90-second limit, tied overtime. Killed pilots respawn after 1.8 seconds with protection that ends when they shoot. AI mutual kills never grant the player points.
+- Bosses: four/six/eight-cannon patterns, visible warnings, locked aim before firing, recovery windows, 3/4/5 core health. Later bosses alternate lasers. Bosses ignore their own projectiles; normal pilots still risk returning fire. The player starts with a shield.
+- AI: beginner ramp only in the first unit; later units retain full tactics. Movement candidates are projected through the same ship physics, moving-body collisions, gravity, neutron beams and wormholes used in live combat. Existing pickup strategies and coordinated squad pressure remain.
+- Desktop: WASD movement, mouse aim, click/Space fire. P/Esc pause, R retry. Classic controls remain selectable on desktop.
+- Phone: left stick moves, right stick aims; **release to shoot once**. Return the right stick to center before releasing to cancel. Touch cancellation, pause and focus loss clear pending fire. Guidance lines require the pickup outside flight school.
+- Graphics: 2560×1440 render buffer with a fixed 1280×720 world and sharper text. Input is converted through the camera so scaling does not change aim or touch positions.
 
-- **Orbital tactics:** AI evaluates planet/moon captures and a future orbital arc, then deploys a persistent threat near the enemy or across a contested approach lane. It checks its actual launch heading again before shooting and avoids its returning orbital rounds. Moving hosts use the same future positions and projectile physics as live play. A new round still replaces the pilot's previous orbital round under the existing one-round limit.
-- **Other pickups:** heavy shells use their slower speed for bounded lead and prefer closer combat; homing launches check nearby obstructions; laser pilots sidestep blocked lines, settle before charging and predict the charge delay from delayed observations. Shielded pilots prefer a closer attack range while retaining hazard avoidance. Guidance temporarily reduces aim error and improves prediction, then expires normally. Pilots avoid deliberately overwriting held ammunition or collecting redundant buffs; squads also reserve guidance pickups.
-- **Continuous difficulty:** only unit one's six lessons use the beginner ramp. Unit two begins with pickup seeking, dodging, movement prediction and independent aiming already active. Reaction, precision and firing cadence then continue improving through unit three without resetting. Existing firing warnings and squad spacing still apply.
-- **Compatibility:** the 27 layouts, 6/9/12 sequence, late-unit FFA/squad battles and v0.11.0 campaign saves are retained. Previous builds and offline files remain available.
+Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to the same original levels; added bosses start uncleared. Original saves are never overwritten. **CAMPAIGN → PRACTICE ALL** opens every arena without advancing campaign completion.
 
-## v0.11.0 changes
+## Online multiplayer
 
-- **Distinct arenas:** handcrafted body arrangements, moving systems, pickup sites and wormhole routes replace repeated layouts. The selector previews each arena and describes its tactical layout. Unit three adds separate well/moon systems, a black-hole/neutron binary and two wormhole pairs.
-- **Pressure fire:** each pilot prepares independently, and the squad selects only pilots whose firing gates are ready. A pilot still waiting for its interval can no longer block its partner. Pressure pilots prefer clear firing lanes, relocate when blocked and allow bounded near-miss cannon shots. Existing difficulty, reload, warning and 0.4-second squad spacing remain.
-- **Three-way battles:** in 1-5, 2-8 and 3-11 the player and two AI pilots have separate scores and no alliances. AI target selection and homing locks can choose other AI. All weapons can hit rivals. Last survivor scores; the first to three points wins. If the player is eliminated first, AI continue the round while the player spectates. 1-6, 2-9 and 3-12 retain coordinated enemy squads.
-- **Wormholes:** introduced only in unit three, from 3-2. Dark throats, receding light rings, spiral streams and a lens rim replace the flat gate symbols. The second pair in 3-10 uses warm colors to distinguish its connection. Ships and projectiles cross; lasers do not.
-- **System motion:** binary stars, star/neutron companions and paired black holes now orbit a common mass-balanced center instead of tracing unrelated identical circles. The solar-family level has a moon orbiting its moving planet; the triple-star level uses an inner binary and a wider companion orbit. Position, velocity, collision, AI prediction and rendering share the same analytical paths. These are prescribed game orbits, not a full N-body simulation. Faint rings show celestial orbits; weapon guides still require a pickup.
-- **Neutron stars:** introduced in 2-3, reinforced in 2-6, and orbiting a star in 2-8. Level cards and in-world labels explicitly identify them. Their bright compact cores, magnetic rings and rotating beams distinguish them from planets. Beams reduce thrust/turn; touching the core is lethal.
+**The client and server are implemented and locally tested. Public matchmaking is unavailable until a server is deployed and `public/online.json` is configured.** The lobby reports this explicitly; it does not pretend that bots are remote players.
 
-## Campaign
+The same WebSocket service supports computer and phone, random matching and friend room codes/invite links. At least two connected humans are needed; empty seats are AI. Up to four humans can join before starting. Two modes:
 
-- **Planets & moons (6 levels):** only planets and moons; no ship gravity. The first three static levels introduce guidance/shield, heavy/laser and homing/orbital. Level 4 adds moving bodies.
-- **Stellar systems (9 levels):** lethal stars, neutron-star interference and binary/triple systems. No wormholes; ships still ignore gravity. The first six arenas are static, level 7 introduces a moving solar family.
-- **Event horizons (12 levels):** black holes, wormholes and a capped gravitational pull on ships from all bodies. Six static arenas introduce the mechanics; levels 7–10 explore distinct moving combinations.
+- Four-way free-for-all: two humans plus two AI (or three/four humans), kill scoring and respawns.
+- 2 vs 2: P1 + P2 versus P3 + P4. With two humans, they cooperate against two AI. First team to three rounds; ally projectiles cannot hit teammates. Every original arena is available; no multiplayer bosses.
 
-Every unit's penultimate level is a three-way battle and its final level is a coordinated two-AI squad. In squad battles, clear both enemies to score; enemy teammates cannot damage each other. In free-for-all, every rival is a valid target and the last survivor scores. Returning shots can hit their owner in either mode. Campaign levels unlock sequentially. **CAMPAIGN → PRACTICE ALL** opens every level without advancing the campaign save.
+The server owns physics, collisions, pickups and scores; clients send bounded movement/aim/fire inputs only. State snapshots are rounded for transport and interpolated for display; projectile trails are reconstructed locally. Server AI uses a bounded coarse-to-fine angular search to limit shared CPU costs. Disconnected pilots become AI immediately, with a 30-second reconnection window. Inputs expire after 0.3 seconds. Leaving/pausing a client does not pause the shared match. The room creator starts rematches; a restarted server does not preserve in-memory rooms.
 
-Reaction time decreases from 1.35 to 0.32 seconds, angular error from ±11 to ±1.4 degrees, and minimum firing interval from 3.8 to 1.15 seconds. The first six lessons introduce these skills; from 2-1 onward all tactics are active. At 2-1 reaction time is 0.65 seconds, aim error is ±3.8 degrees and firing interval is 2.3 seconds, then all three improve further. Enemies use the same trajectory simulation as players, and squad shots are spaced by at least 0.4 seconds.
+### Local development
 
-Trajectory previews are automatic in flight school and otherwise require a 12-second GUIDANCE pickup. It coexists with shields and special ammo. Homing guidance is reduced to 3.6 seconds with slower turning; orbital rounds last up to 48 seconds, unless intercepted, replaced or destroyed. The mouse crosshair has been removed.
+Node 22 or later supported by Vite:
 
-The new campaign uses a separate save key. Audio, controls, tutorial completion, badges and paint carry over. v0.10 campaign completion maps to retained level identities; the three new unit-three combinations do not inherit completion. Migration from v0.9 carries settings and cosmetics only. All old saves stay intact.
-
-## Play locally
-
-The quickest option on Windows is to open `Play-Gravity-Duel.html` or double-click `Start-Playtest.cmd`. The single-file build embeds the game, music, and AI worker and does not require a local server.
-
-For development:
-
-```bash
-npm install
+```sh
+npm ci
 npm run dev
+# In a second terminal:
+npm run build:server
+npm run start:server
 ```
 
-Default controls:
+Open `http://127.0.0.1:5176/` in two browser tabs for a local online match. Local development automatically uses WebSocket port 8787. `Play-Gravity-Duel.html` embeds assets and the AI worker for solo offline use; public online configuration is intentionally not embedded.
 
-- `WASD`: move in screen space
-- Mouse: aim
-- Left mouse button or `Space`: fire
-- `P` or `Esc`: pause
-- `R`: restart the arena
+### Public server deployment
 
-Touch devices use separate movement and aim/fire sticks. Classic thrust-and-turn controls can be selected from the main menu.
+The included `render.yaml` defines one **free** Render Node service with a health endpoint and one-room cap. No database, payment details, or secrets are required by the game. Render account creation and any terms acceptance must be completed by the account owner. Free service availability, sleep/wake latency and capacity remain hosting limitations, so this is a playtest deployment, not a production service promise.
 
-## Validate and build
+1. Sign in to Render, create a Blueprint from `https://github.com/herald1921/gravity-duel`, and review `render.yaml`. Keep the free plan.
+2. Wait for `/health` on the assigned HTTPS hostname to return version `0.12.0`.
+3. Set `public/online.json` to `{"endpoint":"wss://YOUR-ASSIGNED-HOST.onrender.com"}` using the actual assigned hostname, then rebuild and publish the client.
+4. Verify a friend room and a random match from two devices on different networks. No public online completion is claimed before that test.
 
-```bash
+`ALLOWED_ORIGINS` is restricted to the GitHub Pages origin in the deployment template. Add the actual platform iframe origin only when integrating a published CrazyGames build. CrazyGames hosts game files and provides invite/room SDK hooks, but developers provide the real-time multiplayer backend: https://docs.crazygames.com/faq/#do-you-provide-a-server-for-multiplayer-games . The online lobby currently uses its own share links; CrazyGames-specific invite integration remains a platform-release task.
+
+A Dockerfile is also included for another Node-capable host. Never place service credentials in the client config or repository.
+
+## Validation and releases
+
+```sh
 npm test
+npm run test:server
 npm run build
 npm run build:offline
+npm run build:crazygames
 ```
 
-Automated checks cover physics/platform behavior, distinct layouts, 6/9/12 progression, safe moving-body and touch spawns, wormhole exits, paired pickup lessons, three independent scores, all-weapon AI-versus-AI damage, target switching, asynchronous aim invalidation, prepared-shooter arbitration, squad spacing, firing in all 27 levels and save migration. Browser checks cover the selector, free-for-all and wormhole combat. Physical-phone multitouch, long-duration performance and human difficulty balance still need real-device playtesting.
+Tests cover the shared physics, all unique layouts and safe spawn routes, ordered mechanics, pickup tactics, coordinated firing, four-way scoring and respawns, additional bosses, team rules, save migration and touch release/cancel behavior. The server smoke test uses separate WebSocket clients to check friend/random rooms, authoritative state, input bounds and reconnection. Browser QA covers desktop and phone-size layouts and controls; physical-device multitouch, internet latency and extended human balance testing remain necessary.
 
-## Project layout
+- `src/`, `tests/`, `server/`: editable source, regression coverage and authoritative room service.
+- `web-v0.12.0/`: current static build; previous releases under `legacy-*`.
+- `web-v0.11.1/` and earlier version folders: preserved builds.
+- `Play-Gravity-Duel.html`: current standalone solo build.
+- `Play-Gravity-Duel-v0.11.1.html` and earlier version files: preserved standalone builds.
+- Git tag `v0.11.1-playtest`: previous source snapshot.
+- `qa/v0120-tests.txt`: latest automated regression report.
 
-- `src/`: game and platform source
-- `tests/`: logic and regression tests
-- `assets/`: editable/local source assets
-- `public/`: files copied into the web build
-- `web-v0.11.1/`: current ready-to-serve build, with prior versions under `legacy-v0.11.0/`, `legacy-v0.10.1/`, `legacy-v0.10/` and `legacy-v0.9/`
-- `web-v0.11.0/`: preserved previous 27-arena build
-- `web-v0.10.1/`: preserved previous squad/trajectory build
-- `web-v0.10.0/`: preserved previous campaign build
-- `web-v0.9.0/`: preserved previous web build
-- `Play-Gravity-Duel.html`: standalone offline playtest
-- `Play-Gravity-Duel-v0.9.0.html`: preserved previous offline playtest
-- `Play-Gravity-Duel-v0.10.0.html`: preserved previous offline campaign
-- `Play-Gravity-Duel-v0.10.1.html`: preserved previous offline patch
-- `Play-Gravity-Duel-v0.11.0.html`: preserved previous offline campaign
-- `PLAYTEST-v0.11.1.txt`: current patch notes
-
-The CrazyGames integration can be built with `npm run build:crazygames`. This playtest has not been submitted to CrazyGames.
+This version has not been submitted to CrazyGames.

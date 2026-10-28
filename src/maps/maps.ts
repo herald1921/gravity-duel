@@ -14,6 +14,7 @@ export interface GameMap {
   extraEnemySpawns?: readonly Spawn[];
   campaignIndex?: number; lesson?: PowerUpType;
   combat?: 'squad' | 'freeForAll';
+  scoreMode?: 'kills'; teams?: readonly number[]; boss?: 0 | 1 | 2;
   unitIndex?: number; stageIndex?: number; unitLength?: number; legacyIndex?: number;
   lessons?: readonly PowerUpType[];
 }

@@ -1,6 +1,6 @@
 import { AI_AIM_ERROR_DEGREES, AI_AIM_SECONDS, AI_FIRE_DELAY, AI_MOVE_SECONDS, AI_REACTION_TIME, AI_SEARCH_ANGLES, AI_SEARCH_SECONDS, ARENA_BOUNDS, LASER_CHARGE_TIME } from '../config.js';
 import { createProjectile, type Launcher } from '../entities/Bullet.js';
-import { bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialBody.js';
+import { withEphemeris, bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialBody.js';
 import type { Pickup, ProjectileKind, SpecialShot } from '../entities/PowerUp.js';
 import { angleDifference, type Ship, type ShipControl, type PlayerId } from '../entities/Ship.js';
 import { segmentCircleContact, simulateTrajectory, type CollisionTarget, type SpaceContext, type Trajectory, type Vec2 } from '../physics/gravity.js';
@@ -10,10 +10,15 @@ import type { Difficulty } from './Difficulty.js';
 import type { Bullet } from '../entities/Bullet.js';
 import type { SquadOrder } from './SquadCoordinator.js';
 import { findOrbitalDeployment, type OrbitalDeployment } from './OrbitalTactics.js';
+import { TerrainPilot } from './TerrainPilot.js';
 import { preferredRange, wantsPickup, weaponLeadTime } from './PickupTactics.js';
 export interface AimSolution { angle: number; distance: number; trajectory: Trajectory; orbital?: OrbitalDeployment }
 export function findAimSolution(self: Launcher & CollisionTarget, target: CollisionTarget,
-  bodies: readonly CelestialBody[], context: SpaceContext = {}, weapon: SpecialShot | 'normal' = 'normal'): AimSolution {
+  bodies: readonly CelestialBody[], context: SpaceContext = {}, weapon: SpecialShot | 'normal' = 'normal', samples = AI_SEARCH_ANGLES): AimSolution {
+  return withEphemeris(() => findAimCore(self, target, bodies, context, weapon, samples));
+}
+function findAimCore(self: Launcher & CollisionTarget, target: CollisionTarget,
+  bodies: readonly CelestialBody[], context: SpaceContext, weapon: SpecialShot | 'normal', samples: number): AimSolution {
   if (weapon === 'laser') {
     const angle = Math.atan2(target.y - self.y, target.x - self.x);
     const beam = traceLaser(self, bodies, [target], context.time ?? 0, angle);
@@ -29,13 +34,14 @@ export function findAimSolution(self: Launcher & CollisionTarget, target: Collis
   let best: AimSolution | null = null;
   const evaluate = (angle: number) => {
     const trajectory = simulateTrajectory(createProjectile(self, angle, kind), bodies, kind === 'homing' ? [self, target] : [self], AI_SEARCH_SECONDS, 3, context);
-    let distance = Infinity;
-    for (const point of trajectory.points) distance = Math.min(distance, Math.hypot(point.x - target.x, point.y - target.y));
+    let distanceSquared = Infinity;
+    for (const point of trajectory.points) { const dx=point.x-target.x,dy=point.y-target.y;distanceSquared=Math.min(distanceSquared,dx*dx+dy*dy); }
+    let distance = Math.sqrt(distanceSquared);
     if (trajectory.event?.type === 'ship' && trajectory.event.shipId === self.id) distance += 500;
     if (!best || distance < best.distance || (distance === best.distance && trajectory.elapsed < best.trajectory.elapsed)) best = { angle, distance, trajectory };
   };
-  const stride = Math.PI * 2 / AI_SEARCH_ANGLES;
-  for (let i = 0; i < AI_SEARCH_ANGLES; i++) evaluate(i * stride);
+  const stride = Math.PI * 2 / samples;
+  for (let i = 0; i < samples; i++) evaluate(i * stride);
   const coarse = best! as AimSolution;
   for (let i = -6; i <= 6; i++) evaluate(coarse.angle + i * stride / 6);
   const result = best! as AimSolution;
@@ -43,6 +49,7 @@ export function findAimSolution(self: Launcher & CollisionTarget, target: Collis
 }
 export class SpaceAI {
   solution: AimSolution | null = null; targetPoint: Vec2 | null = null;
+  private terrain = new TerrainPilot();
   private decisionIn = 0; private planAge = 0; private goalAngle = 0;
   private blockedFor = 0;
   private guided = false; private aimOffset = 0; private observedVelocity = { x: 0, y: 0 };
@@ -52,7 +59,7 @@ export class SpaceAI {
   private pending = false; private revision = 0;
   constructor(private readonly random: () => number = Math.random, private readonly planner?: AimPlanner, readonly difficulty?: Difficulty) {}
   reset(): void {
-    this.revision++; this.pending = false;
+    this.terrain.reset(); this.revision++; this.pending = false;
     this.solution = null; this.targetPoint = null; this.decisionIn = 0; this.planAge = 0;
     this.blockedFor = 0;
     this.guided = false; this.aimOffset = 0; this.observedVelocity = { x: 0, y: 0 };
@@ -103,6 +110,10 @@ export class SpaceAI {
       // Extrapolate only the last delayed observation, including the charge delay.
       this.goalAngle = Math.atan2(this.targetPoint.y + this.observedVelocity.y * this.planAge - self.y,
         this.targetPoint.x + this.observedVelocity.x * this.planAge - self.x) + this.aimOffset;
+    }
+    if (moving && this.difficulty?.dodge && bodies.length) {
+      const direction = this.terrain.choose(dt, self, target, bodies, context, navigation.angle, context.shipGravity ?? 'blackHoles', preferredRange(self));
+      navigation.angle = Math.atan2(direction.y, direction.x);
     }
     const independent = this.difficulty?.independentAim === true;
     const error = angleDifference(moving && !independent ? navigation.angle : this.goalAngle, self.angle);

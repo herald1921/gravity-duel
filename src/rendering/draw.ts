@@ -7,7 +7,7 @@ export const COLORS = { 1: 0x69f4df, 2: 0xff8c79, 3: 0xffbb70, 4: 0xef8fbf, whit
 export const MONO = 'Arial, Helvetica, sans-serif';
 export const playerColor = (id: PlayerId): number => COLORS[id];
 export function label(scene: Phaser.Scene, x: number, y: number, value: string, size = 22, color = '#e7f1fa'): Phaser.GameObjects.Text {
-  return scene.add.text(x, y, value, { fontFamily: MONO, fontSize: `${Math.max(22,size)}px`, fontStyle: size >= 28 ? 'bold' : 'normal', color });
+  return scene.add.text(x, y, value, { resolution: 2, fontFamily: MONO, fontSize: `${Math.max(22,size)}px`, fontStyle: size >= 28 ? 'bold' : 'normal', color });
 }
 export function drawBackground(scene: Phaser.Scene): void {
   const g = scene.add.graphics().setDepth(-5);

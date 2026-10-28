@@ -16,23 +16,23 @@ import { Profile, SAVE_KEY } from '../.test-build/platform/Profile.js';
 const idle = [IDLE_CONTROL, IDLE_CONTROL, IDLE_CONTROL, IDLE_CONTROL];
 const fleet = () => new Match({ ...CAMPAIGN_MAPS[8], bodies: [], powerUps: [], extraEnemySpawns: [{x:1100,y:400,angle:Math.PI},{x:1070,y:600,angle:-2.8}] }, 1);
 
-test('27 campaign levels introduce mechanics in three ordered units', () => {
-  assert.equal(CAMPAIGN_MAPS.length, 27);
+test('30 campaign levels introduce mechanics in three ordered units', () => {
+  assert.equal(CAMPAIGN_MAPS.length, 30);
   for (const [i, map] of CAMPAIGN_MAPS.entries()) {
-    const unit = map.unitIndex, stage = map.stageIndex, count = [6,9,12][unit];
+    const unit = map.unitIndex, stage = map.stageIndex, count = [7,10,13][unit];
     assert.equal(map.unitLength,count);
     assert.equal(getMap(map.id), map);
     assert.equal(map.shipGravity, unit === 2 ? 'all' : 'none');
     assert.equal(map.bodies.some(b => b.motion), stage >= (unit===0?3:6));
-    assert.equal(1 + map.extraEnemySpawns.length, stage < count-2 ? 1 : 2);
-    assert.equal(map.combat, stage === count-2 ? 'freeForAll' : 'squad');
+    assert.equal(1 + map.extraEnemySpawns.length, stage === count-3 ? 3 : stage === count-2 ? 2 : 1);
+    assert.equal(map.combat, stage === count-3 ? 'freeForAll' : 'squad');
     if (unit === 0) { assert.ok(map.bodies.every(b => ['planet', 'moon'].includes(b.type))); assert.equal(map.wormholes, undefined); }
     if (unit === 1) { assert.ok(!map.bodies.some(b => b.type === 'blackHole')); assert.equal(map.wormholes, undefined); }
     if (unit === 2) assert.ok(map.bodies.some(b => b.type === 'blackHole'));
   }
-  assert.equal(CAMPAIGN_MAPS[14].wormholes, undefined);
-  assert.equal(CAMPAIGN_MAPS[15].wormholes, undefined);
-  assert.equal(CAMPAIGN_MAPS[16].wormholes.length, 2);
+  assert.equal(CAMPAIGN_MAPS[16].wormholes, undefined);
+  assert.equal(CAMPAIGN_MAPS[17].wormholes, undefined);
+  assert.equal(CAMPAIGN_MAPS[18].wormholes.length, 2);
   assert.deepEqual(new Set(CAMPAIGN_MAPS.slice(0, 3).flatMap(m => m.lessons)), new Set(['trajectory', 'shield', 'heavy', 'laser', 'homing', 'orbital']));
 });
 
@@ -151,7 +151,7 @@ test('new campaign preserves old save and carries settings across without unlock
 });
 
 test('squad AI pilots run together with staggered volleys, wormholes and moving gravity', () => {
-  for (const index of [5, 14, 26]) {
+  for (const index of [5, 15, 28]) {
     const map = CAMPAIGN_MAPS[index], m = new Match(map, 3), d = difficultyFor(index);
     const ais = m.ships.slice(1).map((_, i) => new SpaceAI(() => 0.35 + i * 0.12, undefined, d));
     const gates = ais.map(() => new OpeningFireGate(null, d));

@@ -1,0 +1,8 @@
+node_modules
+.git
+web-*
+crazygames-*
+.test-build
+.server-build
+Play-*.html
+qa

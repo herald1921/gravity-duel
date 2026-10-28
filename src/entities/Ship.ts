@@ -12,17 +12,20 @@ export class Ship {
   x = 0; y = 0; vx = 0; vy = 0; angle = 0; hullAngle = 0; cooldown = 0;
   portalCooldown = 0;
   aimAssistFor = 0;
+  hp = 1; maxHP = 1; invulnerableFor = 0; respawnFor = 0;
   alive = true; thrusting = false; shield = false; specialShot: SpecialShot | null = null; jammedFor = 0;
   laserCharge: { remaining: number; angle: number } | null = null;
-  readonly radius = C.SHIP_RADIUS;
+  radius = C.SHIP_RADIUS;
   constructor(readonly id: PlayerId, spawn: Spawn) { this.reset(spawn); }
   reset(spawn: Spawn): void {
     this.x = spawn.x; this.y = spawn.y; this.angle = spawn.angle; this.hullAngle = spawn.angle; this.vx = 0; this.vy = 0;
     this.cooldown = 0; this.portalCooldown = 0; this.alive = true; this.thrusting = false; this.shield = false;
+    this.hp = this.maxHP; this.invulnerableFor = 0; this.respawnFor = 0;
     this.specialShot = null; this.jammedFor = 0; this.laserCharge = null; this.aimAssistFor = 0;
   }
   update(dt: number, control: ShipControl, bodies: readonly CelestialBody[], time = 0, gravity: 'none' | 'all' | 'blackHoles' = 'blackHoles'): string | null {
     if (!this.alive) return null;
+    this.invulnerableFor = Math.max(0, this.invulnerableFor - dt);
     this.aimAssistFor = Math.max(0, this.aimAssistFor - dt);
     this.cooldown = Math.max(0, this.cooldown - dt); this.portalCooldown = Math.max(0, this.portalCooldown - dt);
     this.jammedFor = bodies.some(body => inPulsarBeam(this, body, time)) ? C.PULSAR_RECOVERY_TIME : Math.max(0, this.jammedFor - dt);

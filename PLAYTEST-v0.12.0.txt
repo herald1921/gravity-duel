@@ -1,0 +1,12 @@
+Gravity Duel v0.12.0
+
+30 unique solo arenas: 7 + 10 + 13.
+Each unit retains four-way free-for-all and 1v2, then adds a separate boss.
+Multiplayer retains 2v2 and four-way competition, with no bosses.
+No weapon upgrades. Higher-resolution rendering. Phone dual sticks: release right stick to fire; center to cancel.
+
+Public solo play: https://herald1921.github.io/gravity-duel/
+Old version: https://herald1921.github.io/gravity-duel/legacy-v0.11.1/
+
+Online client/server are locally tested; public online needs a deployed host and online.json endpoint.
+See README for deployment and testing limitations.

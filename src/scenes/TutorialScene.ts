@@ -25,7 +25,7 @@ export class TutorialScene extends Phaser.Scene {
  init(data:{returnToMenu?:boolean}):void{this.returnToMenu=data.returnToMenu===true;}
  create():void{
   this.stage=0;this.seconds=0;this.stageTime=0;this.misses=0;this.mouse=undefined;this.firing=false;this.pending=false;this.bullets=[];this.clock.reset();
-  this.modern=profile.data.controls==='modern';this.target={id:2,x:823,y:253,radius:32,alive:true};
+  this.modern=device.touch||profile.data.controls==='modern';this.target={id:2,x:823,y:253,radius:32,alive:true};
   pause.set('manual',false);platform.setGameplay(false);drawBackground(this);
   this.spawn=device.touch?{x:320,y:460}:{x:260,y:550};
   this.ship=new Ship(1,{...this.spawn,angle:-.9});this.art=this.add.graphics();
@@ -37,8 +37,8 @@ export class TutorialScene extends Phaser.Scene {
   this.next=button(this,430,580,420,80,this.returnToMenu?'BACK TO MENU':'LET’S DUEL →',()=>this.finish()).setDepth(18).setVisible(false);
   this.keys=this.input.keyboard!.addKeys('A,D,W,S,SPACE') as typeof this.keys;
   this.touch=device.touch?new TouchControls(this,this.modern):undefined;
-  const move=(p:Phaser.Input.Pointer)=>{if(!device.touch&&this.modern&&p.y>215)this.mouse={x:p.x,y:p.y};};
-  const down=(p:Phaser.Input.Pointer,objects:Phaser.GameObjects.GameObject[])=>{if(!pause.paused&&objects.length===0&&p.y>215&&p.leftButtonDown()){move(p);this.firing=true;this.pending=true;sound.unlock();}};
+  const move=(pointer:Phaser.Input.Pointer)=>{const p=this.cameras.main.getWorldPoint(pointer.x,pointer.y);if(!device.touch&&this.modern&&p.y>215)this.mouse={x:p.x,y:p.y};};
+  const down=(p:Phaser.Input.Pointer,objects:Phaser.GameObjects.GameObject[])=>{if(!pause.paused&&objects.length===0&&this.cameras.main.getWorldPoint(p.x,p.y).y>215&&p.leftButtonDown()){move(p);this.firing=true;this.pending=true;sound.unlock();}};
   const up=()=>{this.firing=false;};
   this.input.on('pointermove',move);this.input.on('pointerdown',down);this.input.on('pointerup',up);this.input.on('pointerupoutside',up);this.input.on('gameout',up);
   bindMenuKeys(this,k=>{if(pause.paused)return;if(k==='Escape')this.finish();if(k==='Space'){if(this.stage===3)this.finish();else this.pending=true;}if(k==='Enter'&&this.stage===3)this.finish();});
@@ -85,7 +85,7 @@ export class TutorialScene extends Phaser.Scene {
   this.touch?.update(!pause.paused&&this.stage<3,this.stage===0?'thrust':'fire');this.touch?.setReload(this.ship.cooldown/C.FIRE_COOLDOWN);
   const title=['01 / MOVE YOUR SHIP','02 / BEND YOUR FIRST SHOT','03 / FIND A NEW ANGLE','YOU’VE GOT THE ANGLE.'][this.stage];
   const moveText=this.modern?(device.touch?'Push the left stick. Your weapon aims separately.':'Use WASD to move. Your weapon aims separately.'):(device.touch?'Push the left stick to move.':'Hold W to thrust. A / D turns your ship.');
-  const aimText=this.modern?(device.touch?'Hold the right stick toward the planet’s edge to aim and fire.':'Aim beside the planet with your mouse. Hold left click to fire.'):(device.touch?'Point the left stick beside the planet. Hold FIRE.':'Hold A / D to aim beside the planet. Hold SPACE to fire.');
+  const aimText=this.modern?(device.touch?'Aim beside the planet with the right stick. Release to fire.':'Aim beside the planet with your mouse. Hold left click to fire.'):(device.touch?'Point the left stick beside the planet. Hold FIRE.':'Hold A / D to aim beside the planet. Hold SPACE to fire.');
   this.title.setText(pause.paused?'PAUSED':title);
   this.detail.setText(pause.paused?'Return to this window to continue.':this.stage===0?moveText:this.stage===3?'Now dodge, reposition, and use gravity to outplay your rival.':aimText);
   this.next.setVisible(this.stage===3&&!pause.paused);

@@ -79,13 +79,13 @@ test('checkpoint, cleared arenas, tutorial and independent audio settings surviv
  const q=new Profile(()=>store);
  assert.equal(q.data.runIndex,4);assert.deepEqual(q.data.cleared,[3]);assert.equal(q.data.tutorialDone,true);
  assert.equal(q.data.music,false);assert.equal(q.data.sfx,true);
- q.clearArena(26);assert.equal(new Profile(()=>store).data.runIndex,null);
- q.begin(0);assert.deepEqual(q.data.cleared,[3,26]);
+ q.clearArena(29);assert.equal(new Profile(()=>store).data.runIndex,null);
+ q.begin(0);assert.deepEqual(q.data.cleared,[3,29]);
 });
 test('invalid or corrupt profiles cannot select nonexistent arenas or crash', () => {
  const store=memory();store.setItem(SAVE_KEY,'{broken');
  assert.doesNotThrow(()=>new Profile(()=>store));
- store.setItem(SAVE_KEY,JSON.stringify({version:1,runIndex:500,cleared:[0,0,-1,27,'2',3],music:false}));
+ store.setItem(SAVE_KEY,JSON.stringify({version:1,runIndex:500,cleared:[0,0,-1,30,'2',3],music:false}));
  const p=new Profile(()=>store);assert.equal(p.data.runIndex,null);assert.deepEqual(p.data.cleared,[0,3]);
  assert.equal(p.data.music,false);assert.equal(p.data.sfx,true);
 });

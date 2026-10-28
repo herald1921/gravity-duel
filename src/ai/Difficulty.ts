@@ -3,10 +3,10 @@ export interface Difficulty {
   lead: number; seekPickups: boolean; dodge: boolean; independentAim: boolean;
 }
 export function difficultyFor(index: number): Difficulty {
-  const n = Math.max(0, Math.min(26, index));
+  const n = Math.max(0, Math.min(29, index));
   // Only the six planet/moon lessons use the beginner ramp. Stellar systems
   // start with a complete pilot; new mechanics never reset learned tactics.
-  const p = n < 6 ? n / 5 : (n - 6) / 20;
+  const p = n < 6 ? n / 5 : (n - 6) / 23;
   if (n < 6) return { reaction: 1.35 - p * 0.55, aimError: 11 - p * 6,
     fireDelay: 0.55 - p * 0.17, interval: 3.8 - p * 1.2, windup: 0.6 - p * 0.2,
     lead: n < 3 ? 0 : (n - 2) * 0.12, seekPickups: n >= 2, dodge: n >= 4, independentAim: n >= 5 };

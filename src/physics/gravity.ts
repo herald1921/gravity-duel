@@ -21,17 +21,18 @@ export interface CollisionTarget extends Circle { id: PlayerId; previous?: Vec2;
 export type ProjectileEvent = { type: 'body'; bodyId: string } | { type: 'ship'; shipId: PlayerId } | { type: 'bounds' | 'expired' };
 export interface TrajectoryPoint extends Vec2 { breakBefore?: boolean }
 export interface Trajectory { points: TrajectoryPoint[]; end: ProjectileState; event: ProjectileEvent | null; elapsed: number }
-export interface SpaceContext { time?: number; wormholes?: readonly Wormhole[]; maxOrbitArc?: number }
+export interface SpaceContext { shipGravity?: 'none' | 'all' | 'blackHoles'; time?: number; wormholes?: readonly Wormhole[]; maxOrbitArc?: number }
 
 /** Original softened Newtonian force, evaluated at absolute simulation time. */
 export function getGravityAcceleration(position: Vec2, bodies: readonly CelestialBody[], time = 0): Vec2 {
   let x = 0, y = 0;
   for (const body of bodies) {
     const center = bodyPosition(body, time), dx = center.x - position.x, dy = center.y - position.y;
-    const scale = body.gravityStrength / (dx * dx + dy * dy + Math.max(C.MIN_SOFTENING, body.softening) ** 2) ** 1.5;
+    const softened = dx * dx + dy * dy + Math.max(C.MIN_SOFTENING, body.softening) ** 2;
+    const scale = body.gravityStrength / (softened * Math.sqrt(softened));
     x += dx * scale; y += dy * scale;
   }
-  const length = Math.hypot(x, y);
+  const length = Math.sqrt(x*x+y*y);
   if (length > C.MAX_GRAVITY_ACCELERATION) { x *= C.MAX_GRAVITY_ACCELERATION / length; y *= C.MAX_GRAVITY_ACCELERATION / length; }
   return { x, y };
 }
@@ -49,13 +50,18 @@ export function integrateProjectile(state: ProjectileState, bodies: readonly Cel
   state.vx += a.x * dt * gravityScale; state.vy += a.y * dt * gravityScale;
   const bent = Math.atan2(state.vy, state.vx) - heading;
   state.gravityTurn = (state.gravityTurn ?? 0) + Math.atan2(Math.sin(bent), Math.cos(bent));
-  const speed = Math.hypot(state.vx, state.vy);
+  const speed = Math.sqrt(state.vx*state.vx+state.vy*state.vy);
   if (speed > C.MAX_PROJECTILE_SPEED) { state.vx *= C.MAX_PROJECTILE_SPEED / speed; state.vy *= C.MAX_PROJECTILE_SPEED / speed; }
   state.x += state.vx * dt; state.y += state.vy * dt; state.age += dt; state.time = time + dt;
 }
 export function segmentCircleContact(start: Vec2, end: Vec2, circle: Circle, padding = 0): number | null {
-  const dx = end.x - start.x, dy = end.y - start.y, fx = start.x - circle.x, fy = start.y - circle.y;
-  const c = fx * fx + fy * fy - (circle.radius + padding) ** 2;
+  return circleContact(start.x,start.y,end.x,end.y,circle.x,circle.y,circle.radius+padding);
+}
+function circleContact(sx:number,sy:number,ex:number,ey:number,cx:number,cy:number,r:number):number|null {
+  // Conservative segment bounds reject distant circles before quadratic work.
+  if(Math.min(sx,ex)>cx+r||Math.max(sx,ex)<cx-r||Math.min(sy,ey)>cy+r||Math.max(sy,ey)<cy-r)return null;
+  const dx=ex-sx,dy=ey-sy,fx=sx-cx,fy=sy-cy;
+  const c = fx * fx + fy * fy - r*r;
   if (c <= 0) return 0;
   const a = dx * dx + dy * dy;
   if (a === 0) return null;
@@ -132,9 +138,9 @@ function advanceOrbit(state: ProjectileState, body: CelestialBody, time: number,
   state.vx = velocity.x + c * vx - s * vy; state.vy = velocity.y - s * vx - c * vy;
 }
 function movingContact(start: Vec2, end: Vec2, body: CelestialBody, time: number, radius: number, padding: number): number | null {
+  if (!body.motion) return circleContact(start.x,start.y,end.x,end.y,body.x,body.y,radius+padding);
   const a = bodyPosition(body, time), b = bodyPosition(body, time + C.PHYSICS_DT);
-  if (!body.motion) return segmentCircleContact(start, end, { ...a, radius }, padding);
-  return segmentCircleContact({ x: start.x - a.x, y: start.y - a.y }, { x: end.x - b.x, y: end.y - b.y }, { x: 0, y: 0, radius }, padding);
+  return circleContact(start.x-a.x,start.y-a.y,end.x-b.x,end.y-b.y,0,0,radius+padding);
 }
 export function steerHoming(state: ProjectileState, targets: readonly CollisionTarget[]): void {
   const previousLock = state.homingTargetId;
@@ -188,8 +194,7 @@ export function stepProjectile(state: ProjectileState, bodies: readonly Celestia
   for (const ship of targets) {
     if (ship.alive === false || (ship.id === state.ownerId && previousAge + 1e-9 < C.OWNER_GRACE_TIME)) continue;
     const previous = ship.previous ?? ship;
-    const t = segmentCircleContact({ x: before.x - previous.x, y: before.y - previous.y },
-      { x: state.x - ship.x, y: state.y - ship.y }, { x: 0, y: 0, radius: ship.radius }, state.radius);
+    const t = circleContact(before.x-previous.x,before.y-previous.y,state.x-ship.x,state.y-ship.y,0,0,ship.radius+state.radius);
     if (t !== null && t < contact) { event = { type: 'ship', shipId: ship.id }; contact = t; }
   }
   {

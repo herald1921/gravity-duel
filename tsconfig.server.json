@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.test.json","compilerOptions":{"outDir":".server-build"},"include":["src/game/OnlineRuntime.ts"]}

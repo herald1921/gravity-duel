@@ -18,23 +18,23 @@ export class MapSelectScene extends Phaser.Scene {
  create():void{
   this.cards=[];platform.setGameplay(false);drawBackground(this);
   label(this,52,30,this.mode==='2p'?'LOCAL DUEL':this.practice?'PRACTICE · ALL LEVELS OPEN':'CAMPAIGN · THREE UNITS',30,'#70e9d4');
-  label(this,52,72,this.mode==='2p'?'One keyboard. Nine classic arenas.':this.unit===1?'Stars + neutron stars · Rotating beams jam ships · Ship gravity OFF':this.unit===2?'Black holes + wormholes · Ships feel gravity · Wormholes from 3-2':'Planets + moons only · Ship gravity OFF · Learn the skies, then face a squad.',20,'#afc6d9');
+  label(this,52,72,this.mode==='2p'?'One keyboard. Nine classic arenas.':this.unit===1?'Stars + neutron stars · Rotating beams jam ships · Ship gravity OFF':this.unit===2?'Black holes + wormholes · Ships feel gravity · Wormholes from 3-2':'Planets + moons only · Ship gravity OFF · Learn the skies, then challenge the boss.',20,'#afc6d9');
   button(this,1095,24,137,60,'BACK',()=>this.scene.start('Menu'));
   if(this.mode==='1p'){
    UNITS.forEach((_name,i)=>button(this,52+i*294,110,280,58,['1 · PLANETS','2 · STARS','3 · BLACK HOLES'][i]+' ('+UNIT_COUNTS[i]+')',()=>this.scene.restart({mode:this.mode,unit:i,practice:this.practice}),i===this.unit?0x69f4df:0x96acc3));
    button(this,940,110,292,58,this.practice?'CAMPAIGN MODE':'PRACTICE ALL',()=>this.scene.restart({mode:this.mode,unit:this.unit,practice:!this.practice}),0xffcb87);
   }
   this.maps=this.mode==='2p'?MAPS:CAMPAIGN_MAPS.filter(m=>m.unitIndex===this.unit);
-  const compact=this.maps.length>9, rowHeight=compact?112:150, cardHeight=compact?104:136;
+  const compact=this.maps.length>9, rowHeight=this.maps.length>12?89:compact?112:150, cardHeight=this.maps.length>12?83:compact?104:136;
   this.maps.forEach((map,i)=>{
    const locked=this.locked(i), cleared=profile.data.cleared.includes(map.campaignIndex??-1);
    const card=new MenuCard(this,52+i%3*398,190+Math.floor(i/3)*rowHeight,380,cardHeight,locked?0x53677b:this.unit===0?0x69f4df:this.unit===1?0xa6b5ff:0xffcb87,()=>this.select(i),()=>this.choose(i));
    const art=this.add.graphics();
    art.save().translateCanvas(65,cardHeight/2).scaleCanvas(.155,.155).translateCanvas(-640,-390);
    map.bodies.forEach(b=>{if(b.type==='pulsar'){const p=bodyPosition(b,0);art.lineStyle(12,0x6ae7ff,.6).lineBetween(p.x-100,p.y+70,p.x+100,p.y-70);art.fillStyle(0xd4f9ff).fillCircle(p.x,p.y,b.radius);}else drawCelestial(art,b);});(map.wormholes??[]).forEach(w=>drawWormhole(art,w,0));art.restore();
-   card.container.add(art);card.text(this,137,compact?9:20,map.name,22);card.text(this,137,compact?38:54,this.mode==='2p'?'ARENA '+(i+1):'LEVEL '+(this.unit+1)+'-'+(i+1)+' · '+(locked?'LOCKED':cleared?'CLEARED':'READY'),18,'#9fb8d0');
+   card.container.add(art);card.text(this,137,compact?6:20,map.name,22);card.text(this,137,compact?31:54,this.mode==='2p'?'ARENA '+(i+1):'LEVEL '+(this.unit+1)+'-'+(i+1)+' · '+(locked?'LOCKED':cleared?'CLEARED':'READY'),18,'#9fb8d0');
    const enemies=1+(map.extraEnemySpawns?.length??0), moving=map.bodies.some(b=>b.motion);
-   card.container.add(label(this,137,compact?68:87,map.combat==='freeForAll'?'3-WAY FREE FOR ALL':enemies>1?'2-AI SQUAD':(map.bodies.some(b=>b.type==='pulsar')?'NEUTRON':moving?'ORBITING':'STATIC')+' · 1 RIVAL',18,locked?'#6d8298':'#70e9d4').setWordWrapWidth(230));this.cards.push(card);
+   card.container.add(label(this,137,compact?56:87,map.boss!==undefined?'BOSS ENCOUNTER':map.combat==='freeForAll'?'4-WAY · KILL RACE':enemies>1?'2-AI SQUAD':(map.bodies.some(b=>b.type==='pulsar')?'NEUTRON':moving?'ORBITING':'STATIC')+' · 1 RIVAL',18,locked?'#6d8298':'#70e9d4').setWordWrapWidth(230));this.cards.push(card);
   });
   this.footer=label(this,52,647,'',18,'#a9bed2').setWordWrapWidth(1170);this.select(0);
   bindMenuKeys(this,k=>{if(pause.paused)return;const n=this.maps.length;if(['ArrowLeft','KeyA'].includes(k))this.select((this.selected+n-1)%n);

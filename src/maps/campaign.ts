@@ -5,9 +5,9 @@ import type { GameMap } from './maps.js';
 import { binarySystem, solarFamily, tripleSystem } from './systems.js';
 
 export const UNITS = ['PLANETS & MOONS', 'STELLAR SYSTEMS', 'EVENT HORIZONS'];
-export const UNIT_COUNTS = [6, 9, 12];
-export const UNIT_STARTS = [0, 6, 15];
-export const unitForIndex = (index: number): number => index < 6 ? 0 : index < 15 ? 1 : 2;
+export const UNIT_COUNTS = [7, 10, 13];
+export const UNIT_STARTS = [0, 7, 17];
+export const unitForIndex = (index: number): number => index < 7 ? 0 : index < 17 ? 1 : 2;
 const powers: PowerUpType[] = ['trajectory', 'shield', 'heavy', 'laser', 'homing', 'orbital'];
 const names = [
   ['First Orbit', 'Split Moons', 'Heavy Crossing', 'Laser Alley', 'Crescent Chase', 'Orbital Forge', 'Moon Pendulum', 'Twin Harbors', 'Lunar Crown'],
@@ -15,7 +15,7 @@ const names = [
   ['Into the Well', 'Wormhole Passage', 'Twin Horizons', 'Dark Companion', 'Gravity Web', 'Event Relay', 'Moving Wells', 'Dark Satellite', 'Final Horizon', 'Split Vortices', 'Neutron Abyss', 'Wormhole Weave'],
 ];
 // Each arena has its own geometry. Progression is independent of layout: six static
-// lessons, moving duels, a three-way battle, then a coordinated two-pilot squad.
+// lessons, moving duels, a four-way battle, a coordinated squad, then an extra boss.
 const tactics = [
   ['One offset planet leaves a wide outside lane.', 'Two separated moons offer alternating cover.', 'Diagonal planets split the arena into crossing lanes.',
     'Four moons frame a clear central laser lane.', 'A crescent of moons shelters the far side of a planet.', 'Two unequal planets offer different orbital traps.',
@@ -132,33 +132,47 @@ const pickupSites = [
 // Stable authored layouts survive renumbering; legacy indices migrate completion by level identity.
 const layouts = [
   ...[0, 2, 5, 6, 7, 8].map(stage => ({ unit: 0, layout: stage, legacy: stage })),
+  { unit: 0, layout: 9, legacy: undefined },
   ...Array.from({ length: 9 }, (_, stage) => ({ unit: 1, layout: stage, legacy: 9 + stage })),
+  { unit: 1, layout: 9, legacy: undefined },
   ...[0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 7, 8].map(stage => ({ unit: 2, layout: stage, legacy: stage < 9 ? 18 + stage : undefined })),
+  { unit: 2, layout: 12, legacy: undefined },
 ];
 const lessonGroups: PowerUpType[][] = [['trajectory', 'shield'], ['heavy', 'laser'], ['homing', 'orbital']];
 const lessonHints = ['GUIDANCE REVEALS SHOT PATHS — SHIELD BLOCKS ONE HIT', 'HEAVY HITS HARD — LASER CHARGES THEN FIRES STRAIGHT', 'HOMING TURNS TOWARD RIVALS — ORBITAL ROUNDS CIRCLE PLANETS'];
-export const CAMPAIGN_MAPS: readonly GameMap[] = Array.from({ length: 27 }, (_, index) => {
+export const CAMPAIGN_MAPS: readonly GameMap[] = Array.from({ length: 30 }, (_, index) => {
   const { unit, layout, legacy } = layouts[index], stage = index - UNIT_STARTS[unit], unitLength = UNIT_COUNTS[unit];
   const lessons = unit === 0 && stage < 3 ? lessonGroups[stage] : undefined, lesson = lessons?.[0];
-  const freeForAll = stage === unitLength - 2, squad = stage === unitLength - 1;
-  const wormholes = portalsFor(unit, layout), bodies = bodiesFor(unit, layout);
-  const extraEnemySpawns = freeForAll || squad ? [{ x: freeForAll ? 1080 : 1145, y: freeForAll ? 585 : 390, angle: Math.PI }] : [];
-  const hint = freeForAll ? 'THREE-WAY BATTLE — EVERY PILOT IS AN ENEMY; LAST SURVIVOR SCORES' : lessons ? lessonHints[stage] : unit === 2 && stage === 0 ? 'SHIP GRAVITY IS ON — KEEP THRUSTING TO ESCAPE THE WELL' :
+  const freeForAll = stage === unitLength - 3, squad = stage === unitLength - 2, boss = stage === unitLength - 1;
+  const wormholes = boss ? (unit === 2 ? portalPair([350, 190, 0.7], [940, 575, -2.4]) : undefined) : portalsFor(unit, layout);
+  const bodies = boss ? bossBodies(unit) : bodiesFor(unit, layout);
+  const extraEnemySpawns = freeForAll ? [{ x: 1100, y: 585, angle: Math.PI }, { x: 170, y: 185, angle: 0.35 }] : squad ? [{ x: 1100, y: 585, angle: Math.PI }] : [];
+  const hint = freeForAll ? 'FOUR PILOTS — SCORE KILLS, RESPAWN, FIRST TO 4; 90 SECOND LIMIT' : lessons ? lessonHints[stage] : unit === 2 && stage === 0 ? 'SHIP GRAVITY IS ON — KEEP THRUSTING TO ESCAPE THE WELL' :
     wormholes && stage === 1 ? 'WORMHOLES CONNECT DISTANT SPACE — SHIPS AND SHOTS CAN CROSS; LASERS CANNOT' :
     unit === 1 && stage === 2 ? 'NEUTRON STAR: ROTATING BEAMS JAM THRUST AND TURN; THE CORE IS LETHAL' :
-    squad ? 'TWO ALLIED AI PILOTS — BREAK THEIR CROSSFIRE TO SCORE' :
+    boss ? 'BOSS: DODGE THE WARNING VOLLEY — STRIKE DURING RECOVERY' : squad ? 'OUTMANEUVER TWO COORDINATED ENEMIES' :
     bodies.some(b => b.motion) ? 'MOVING GRAVITY WELLS — WATCH THE NEXT POSITION' :
     unit === 1 ? 'STARS ARE LETHAL — YOUR SHIP STILL IGNORES GRAVITY' : 'MULTIPLE GRAVITY WELLS BEND EVERY SHOT';
   return {
-    id: `unit-${unit + 1}-${stage + 1}`, name: names[unit][layout], description: tactics[unit][layout], hint,
+    id: `unit-${unit + 1}-${stage + 1}`, name: boss ? ['Orbital Warden', 'Solar Dreadnought', 'Event Sovereign'][unit] : names[unit][layout], description: boss ? ['A lunar shield ring surrounds the four-cannon warden.', 'A drifting sun and neutron sentry protect the dreadnought.', 'Two wells frame a wormhole route behind the sovereign.'][unit] : tactics[unit][layout], hint,
     campaignIndex: index, unitIndex: unit, stageIndex: stage, unitLength, legacyIndex: legacy, lesson, lessons, shipGravity: unit === 2 ? 'all' : 'none',
-    combat: freeForAll ? 'freeForAll' : 'squad',
-    player1Spawn: { x: 170, y: [555, 555, 590, 385, 580, 555, 555, 555, 555, 555, 555, 555][layout], angle: layout === 3 ? 0 : -0.35 },
-    player2Spawn: { x: 1070, y: [185, 220, 190, 385, 200, 185, 185, 185, 185, 185, 185, 185][layout], angle: layout === 3 ? Math.PI : 2.8 },
+    combat: freeForAll ? 'freeForAll' : 'squad', ...(freeForAll ? { scoreMode: 'kills' as const } : {}), ...(boss ? { boss: unit as 0 | 1 | 2 } : {}),
+    player1Spawn: { x: 170, y: boss ? 555 : [555, 555, 590, 385, 580, 555, 555, 555, 555, 555, 555, 555][layout], angle: layout === 3 ? 0 : -0.35 },
+    player2Spawn: { x: 1070, y: boss ? 185 : [185, 220, 190, 385, 200, 185, 185, 185, 185, 185, 185, 185][layout], angle: layout === 3 ? Math.PI : 2.8 },
     extraEnemySpawns, bodies,
     ...(wormholes ? { wormholes } : {}),
-    powerUpSpawnPoints: pickupSites[legacy ?? 27 + layout - 9].map(([x, y]) => ({ x, y })),
+    powerUpSpawnPoints: (boss ? [[340, 610], [950, 350], [640, 600], [640, 175]] : pickupSites[legacy ?? 27 + layout - 9]).map(([x, y]) => ({ x, y })),
     powerUps: lessons ? [...lessons, ...powers.slice(0, stage * 2)] : powers,
     pickupStart: 0.8,
   };
 });
+
+function bossBodies(unit: number): CelestialBody[] {
+  if (unit === 0) return [createBody('warden-world', 'planet', 650, 370, { radius: 53 }),
+    ...[0, 1, 2].map(i => createBody('warden-moon-' + i, 'moon', 650, 370, { radius: 22, motion: { radius: 170, period: 34, phase: i * Math.PI * 2 / 3 } }))];
+  if (unit === 1) return [createBody('dread-sun', 'star', 535, 370, { radius: 48, motion: { radius: 48, period: 40, phase: 0 } }),
+    createBody('dread-neutron', 'pulsar', 810, 400, { radius: 23 }), createBody('dread-cover', 'planet', 680, 215, { radius: 32 })];
+  return [createBody('sovereign-west', 'blackHole', 480, 340, { radius: 24 }),
+    createBody('sovereign-east', 'blackHole', 820, 430, { radius: 24 }),
+    createBody('sovereign-moon', 'moon', 650, 385, { radius: 23, motion: { radius: 105, period: 27, phase: 0.8 } })];
+}

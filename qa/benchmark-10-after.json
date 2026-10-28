@@ -1,0 +1,15 @@
+{
+  "rooms": 10,
+  "simulatedSeconds": 8,
+  "wallSeconds": 5.249951200000001,
+  "cpuSeconds": 6.563,
+  "estimatedCPUCores": 0.820375,
+  "freeCPUQuota": 0.1,
+  "quotaRatio": 8.20375,
+  "tickP95ms": 19.329600000000028,
+  "tickMaxMs": 414.7148,
+  "meanSnapshotBytes": 2200,
+  "estimatedTotalGBPerHour": 3.1678821,
+  "shots": 240,
+  "restarts": 0
+}

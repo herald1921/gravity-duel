@@ -37,7 +37,13 @@ export class TouchState {
   get stickPosition(): { x: number; y: number; held: boolean } {
     return { x: this.stick?.x ?? 0, y: this.stick?.y ?? 0, held: !!this.stick };
   }
-  release(id: number): void { this.pointers.delete(id); if (this.stick?.id === id) this.stick = undefined; if (this.aimStick?.id === id) this.aimStick = undefined; }
+  release(id: number): void {
+    this.pointers.delete(id); if (this.stick?.id === id) this.stick = undefined;
+    if (this.aimStick?.id === id) {
+      if (this.dual && Math.hypot(this.aimStick.x, this.aimStick.y) > 0.22) this.pendingFire = true;
+      this.aimStick = undefined;
+    }
+  }
   clear(): void { this.pointers.clear(); this.stick = undefined; this.aimStick = undefined; this.lastAim = undefined; this.pendingFire = false; }
   consumeFire(): void { this.pendingFire = false; }
   down(action: TouchAction): boolean { return [...this.pointers.values()].includes(action); }
@@ -46,7 +52,7 @@ export class TouchState {
     const gain = length > STICK_DEAD_ZONE ? (length - STICK_DEAD_ZONE) / ((1 - STICK_DEAD_ZONE) * length) : 0;
     const clamp = (n: number) => Math.max(-1, Math.min(1, n));
     return { turn: clamp(Number(this.down('right')) - Number(this.down('left'))),
-      thrust: Number(this.down('thrust')), fire: this.down('fire') || this.pendingFire || (this.dual && Math.hypot(this.aimStick?.x ?? 0, this.aimStick?.y ?? 0) > 0.22),
+      thrust: Number(this.down('thrust')), fire: this.down('fire') || this.pendingFire,
       ...(this.dual ? { independentAim: true, ...(this.lastAim === undefined ? {} : { aim: this.lastAim }) } : {}),
       ...(gain > 0 ? { move: { x: x * gain, y: y * gain } } : {}) };
   }

@@ -8,7 +8,8 @@ export class TouchControls {
     this.state=new TouchState(dual);this.container=scene.add.container(0,0).setDepth(14);this.art=scene.add.graphics();
     const zone=(cx:number,aim:boolean)=>{
       const z=scene.add.zone(cx,562,230,230).setInteractive(new Phaser.Geom.Circle(115,115,115),Phaser.Geom.Circle.Contains);
-      z.on('pointerdown',(p:Phaser.Input.Pointer)=>{
+      z.on('pointerdown',(pointer:Phaser.Input.Pointer)=>{
+        const p={...scene.cameras.main.getWorldPoint(pointer.x,pointer.y),id:pointer.id};
         if(!this.enabled)return;
         if(aim) {if(this.dual)this.state.beginAim(p.id,(p.x-1118)/70,(p.y-562)/70);else this.state.press(p.id,'fire');}
         else this.state.beginStick(p.id,(p.x-162)/70,(p.y-562)/70);
@@ -16,13 +17,13 @@ export class TouchControls {
     };
     this.container.add([this.art,zone(162,false),zone(1118,true),
       label(scene,162,689,'MOVE',22,'#9ddacf').setOrigin(.5),
-      label(scene,1118,689,dual?'AIM + FIRE':'FIRE',22,'#ffc7a9').setOrigin(.5)]);
-    const move=(p:Phaser.Input.Pointer)=>{if(!this.enabled||!p.isDown)return;this.state.moveStick(p.id,(p.x-162)/70,(p.y-562)/70);this.state.moveAim(p.id,(p.x-1118)/70,(p.y-562)/70);};
+      label(scene,1118,689,dual?'RELEASE TO FIRE':'FIRE',22,'#ffc7a9').setOrigin(.5)]);
+    const move=(pointer:Phaser.Input.Pointer)=>{if(!this.enabled||!pointer.isDown)return;const p={...scene.cameras.main.getWorldPoint(pointer.x,pointer.y),id:pointer.id};this.state.moveStick(p.id,(p.x-162)/70,(p.y-562)/70);this.state.moveAim(p.id,(p.x-1118)/70,(p.y-562)/70);};
     const release=(p:Phaser.Input.Pointer)=>this.state.release(p.id),clear=()=>this.state.clear();
-    scene.input.on('pointermove',move);scene.input.on('pointerup',release);scene.input.on('pointerupoutside',release);scene.input.on('gameout',clear);
+    scene.input.on('pointermove',move);scene.input.on('pointerup',release);scene.input.on('pointerupoutside',clear);scene.input.on('gameout',clear);
     scene.game.canvas.addEventListener('pointercancel',clear);scene.game.canvas.addEventListener('touchcancel',clear);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
-      scene.input.off('pointermove',move);scene.input.off('pointerup',release);scene.input.off('pointerupoutside',release);scene.input.off('gameout',clear);
+      scene.input.off('pointermove',move);scene.input.off('pointerup',release);scene.input.off('pointerupoutside',clear);scene.input.off('gameout',clear);
       scene.game.canvas.removeEventListener('pointercancel',clear);scene.game.canvas.removeEventListener('touchcancel',clear);clear();
     });
   }
