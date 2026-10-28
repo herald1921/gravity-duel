@@ -1,4 +1,4 @@
-# Gravity Duel — v0.12.0 playtest
+# Gravity Duel — v0.12.1 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
 Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.11.1/
@@ -28,7 +28,13 @@ The same WebSocket service supports computer and phone, random matching and frie
 - Four-way free-for-all: two humans plus two AI (or three/four humans), kill scoring and respawns.
 - 2 vs 2: P1 + P2 versus P3 + P4. With two humans, they cooperate against two AI. First team to three rounds; ally projectiles cannot hit teammates. Every original arena is available; no multiplayer bosses.
 
-The server owns physics, collisions, pickups and scores; clients send bounded movement/aim/fire inputs only. State snapshots are rounded for transport and interpolated for display; projectile trails are reconstructed locally. Server AI uses a bounded coarse-to-fine angular search to limit shared CPU costs. Disconnected pilots become AI immediately, with a 30-second reconnection window. Inputs expire after 0.3 seconds. Leaving/pausing a client does not pause the shared match. The room creator starts rematches; a restarted server does not preserve in-memory rooms.
+A foreground player device hosts the complete physics, collisions, pickups, AI and scoring. Desktop devices are preferred. Guests send bounded controls over a reliable WebRTC data channel; the host sends state at 20 Hz on an unordered channel, with interpolation and reconstructed trails. AI retains the full trajectory search in a worker. Gameplay normally bypasses the server entirely. The server handles room codes, random matching, signaling, liveness and host election. No camera or microphone permission is used.
+
+On host departure/backgrounding, a connected foreground player resumes the latest checkpoint, including scores, projectiles, weapon charge, pickup timers and progression within the match. AI planning restarts after takeover. There can be a brief pause and up to one snapshot interval of rollback. Missing/background pilots become AI; disconnected seats have a 30-second reconnect window. Input expires after 0.3 seconds. The world waits when a visible connected human has not reached the host; pause only disables local controls. Rematches reuse healthy direct connections. A service restart loses in-memory room codes.
+
+Direct connectivity is not guaranteed on restrictive networks. At most two rooms can use the WebSocket relay fallback simultaneously. Other affected rooms wait with a connection message. This is a deliberate free-tier limit, not evidence that all networks support 1,000 matches. Player-hosted scores are not cheat resistant; direct peers can learn each other's network addresses.
+
+**Capacity target: 1,000 simultaneous real matches. Not yet verified.** `server/benchmark-signaling.mjs` exercises 1,000 started rooms / 4,000 real WebSockets, realistic signaling and ongoing heartbeats, but does NOT execute 1,000 browsers or transmit their direct gameplay streams. Its JSON explicitly labels this distinction. Real distributed gameplay, low-end phones, restrictive-network relay demand, monthly traffic and long-duration public stability remain separate acceptance gates. The server-authoritative reference and CPU benchmark are preserved in `server/authoritative.mjs` and `server/benchmark.mjs`.
 
 ### Local development
 
@@ -46,10 +52,10 @@ Open `http://127.0.0.1:5176/` in two browser tabs for a local online match. Loca
 
 ### Public server deployment
 
-The included `render.yaml` defines one **free** Render Node service with a health endpoint and one-room cap. No database, payment details, or secrets are required by the game. Render account creation and any terms acceptance must be completed by the account owner. Free service availability, sleep/wake latency and capacity remain hosting limitations, so this is a playtest deployment, not a production service promise.
+The included `render.yaml` defines one **free** Render Node service with a health endpoint, a 1,000-room admission cap and a two-room relay cap. No database, payment details, or secrets are required by the game. Render account creation and any terms acceptance must be completed by the account owner. Free service availability, sleep/wake latency and capacity remain hosting limitations, so this is a playtest deployment, not a production service promise.
 
 1. Sign in to Render, create a Blueprint from `https://github.com/herald1921/gravity-duel`, and review `render.yaml`. Keep the free plan.
-2. Wait for `/health` on the assigned HTTPS hostname to return version `0.12.0`.
+2. Wait for `/health` on the assigned HTTPS hostname to return version `0.12.1`.
 3. Set `public/online.json` to `{"endpoint":"wss://YOUR-ASSIGNED-HOST.onrender.com"}` using the actual assigned hostname, then rebuild and publish the client.
 4. Verify a friend room and a random match from two devices on different networks. No public online completion is claimed before that test.
 
@@ -67,14 +73,14 @@ npm run build:offline
 npm run build:crazygames
 ```
 
-Tests cover the shared physics, all unique layouts and safe spawn routes, ordered mechanics, pickup tactics, coordinated firing, four-way scoring and respawns, additional bosses, team rules, save migration and touch release/cancel behavior. The server smoke test uses separate WebSocket clients to check friend/random rooms, authoritative state, input bounds and reconnection. Browser QA covers desktop and phone-size layouts and controls; physical-device multitouch, internet latency and extended human balance testing remain necessary.
+Tests cover the shared physics, all unique layouts and safe spawn routes, ordered mechanics, pickup tactics, coordinated firing, four-way scoring and respawns, additional bosses, team rules, save migration and touch release/cancel behavior. The server smoke test checks friend/random rooms, signaling isolation, host-only state relay, stale epoch rejection, relay limits and host migration. Core continuation tests verify exact physics and pickup-state preservation after takeover; input tests reject invalid controls. Browser QA covers desktop and phone-size layouts and controls; physical-device multitouch, internet latency and extended human balance testing remain necessary.
 
-- `src/`, `tests/`, `server/`: editable source, regression coverage and authoritative room service.
-- `web-v0.12.0/`: current static build; previous releases under `legacy-*`.
-- `web-v0.11.1/` and earlier version folders: preserved builds.
+- `src/`, `tests/`, `server/`: editable source, regression coverage and signaling service.
+- `web-v0.12.1/`: current static build; previous releases under `legacy-*`.
+- `web-v0.12.0/`, `web-v0.11.1/` and earlier version folders: preserved builds.
 - `Play-Gravity-Duel.html`: current standalone solo build.
 - `Play-Gravity-Duel-v0.11.1.html` and earlier version files: preserved standalone builds.
 - Git tag `v0.11.1-playtest`: previous source snapshot.
-- `qa/v0120-tests.txt`: latest automated regression report.
+- `qa/v0121-tests.txt`: latest automated regression report.
 
 This version has not been submitted to CrazyGames.

@@ -3,7 +3,7 @@ services:
     name: gravity-duel-online
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:server
+    buildCommand: npm ci --prefix server --omit=dev
     startCommand: npm run start:server
     healthCheckPath: /health
     envVars:
@@ -12,4 +12,6 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://herald1921.github.io
       - key: MAX_ROOMS
-        value: 1
+        value: 1000
+      - key: MAX_RELAY_ROOMS
+        value: 2

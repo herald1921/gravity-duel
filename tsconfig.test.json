@@ -18,6 +18,7 @@
     "src/rendering/Music.ts",
     "src/rendering/Sound.ts",
     "src/input/*.ts",
-    "src/platform/CrazyGames.ts"
+    "src/platform/CrazyGames.ts",
+    "src/net/input.ts"
   ]
 }

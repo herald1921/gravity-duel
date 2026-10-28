@@ -1,0 +1,36 @@
+{
+  "kind": "SIGNALING_ONLY_NOT_1000_REAL_MATCHES",
+  "location": "local workstation",
+  "rooms": 1000,
+  "playersPerRoom": 4,
+  "durationSeconds": 182.748,
+  "activeAtEnd": 1000,
+  "connectionsAtEnd": 4000,
+  "failures": 0,
+  "unexpectedHostChanges": 0,
+  "signalPackets": 6000,
+  "pingSamples": 2000,
+  "pingMs": {
+    "p50": 4,
+    "p95": 7,
+    "p99": 12,
+    "max": 13
+  },
+  "cpuCores": 0.03556810471250027,
+  "rssMB": 91,
+  "brokerOutboundMBPerHour": 1.4183465756123188,
+  "health": {
+    "ok": true,
+    "version": "0.12.1",
+    "architecture": "peer-hosted",
+    "rooms": 1000,
+    "active": 1000,
+    "peers": 4000,
+    "cpuSeconds": 11.812,
+    "uptime": 198.4305724,
+    "rssMB": 91,
+    "outboundBytes": 15773000,
+    "inboundBytes": 13810000,
+    "relayBytes": 0
+  }
+}

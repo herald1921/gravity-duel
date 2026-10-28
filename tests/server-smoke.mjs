@@ -1,26 +1,25 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { WebSocket } from 'ws';
-const child=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'0'},stdio:['ignore','pipe','inherit']});
-const port=await new Promise((resolve,reject)=>{child.stdout.on('data',chunk=>{const m=String(chunk).match(/ready on (\d+)/);if(m)resolve(Number(m[1]));});child.once('exit',code=>reject(Error('server exited '+code)));});
-const sockets=[];
-async function peer(){const ws=new WebSocket('ws://127.0.0.1:'+port,{origin:'http://127.0.0.1:5176'}),messages=[];sockets.push(ws);
- ws.on('message',raw=>messages.push(JSON.parse(raw)));await new Promise((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject);});
- return {ws,messages,send:m=>ws.send(JSON.stringify(m)),wait:async(type,predicate=()=>true)=>{const start=Date.now();while(Date.now()-start<15000){const i=messages.findIndex(m=>m.type===type&&predicate(m));if(i>=0)return messages.splice(i,1)[0];await new Promise(r=>setTimeout(r,20));}throw Error('timeout '+type);}};
-}
+import {spawn} from 'node:child_process';
+import {WebSocket} from 'ws';
+const child=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'0',MAX_RELAY_ROOMS:'1'},stdio:['ignore','pipe','inherit']});
+const port=await new Promise((resolve,reject)=>{child.stdout.on('data',c=>{const m=String(c).match(/ready on (\d+)/);if(m)resolve(+m[1]);});child.on('error',reject);});
+const sockets=[];const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function peer(){const ws=new WebSocket('ws://127.0.0.1:'+port,{origin:'http://127.0.0.1:5176'}),messages=[];sockets.push(ws);ws.on('message',r=>messages.push(JSON.parse(r)));await new Promise((r,j)=>{ws.once('open',r);ws.once('error',j);});return {ws,messages,send:m=>ws.send(JSON.stringify(m)),wait:async(type,p=()=>true)=>{for(let i=0;i<300;i++){const ix=messages.findIndex(m=>m.type===type&&p(m));if(ix>=0)return messages.splice(ix,1)[0];await sleep(20);}throw Error('timeout '+type);}};}
 try{
- const a=await peer(),b=await peer();a.send({type:'create',mode:'teams',mapId:'unit-1-6'});
- const joined=await a.wait('joined'),room=await a.wait('room');b.send({type:'join',code:room.code});await b.wait('joined');await b.wait('room');a.send({type:'start'});
- const [sa,sb]=await Promise.all([a.wait('snapshot',m=>m.state.phase==='playing'),b.wait('snapshot',m=>m.state.phase==='playing')]);
- assert.equal(sa.state.ships.length,4);assert.deepEqual(sa.state.scores,{1:0,2:0});assert.equal(sb.state.ships.length,4);
- a.send({type:'input',control:{move:{x:1,y:0},aim:0,fire:true,thrust:0,turn:0}});
- const moving=await a.wait('snapshot',m=>m.state.ships[0].vx>0);assert.ok(moving.state.ships[0].x>170);
- // Forged scores and a foreign player ID are never accepted as simulation state.
- b.send({type:'input',id:1,scores:{1:999},control:{move:{x:100000,y:0},fire:false}});
- const safe=await b.wait('snapshot',m=>m.state.time>moving.state.time+.4);assert.ok(safe.state.scores[1]<999);assert.ok(Math.abs(safe.state.ships[1].vx)<400);
- a.ws.close();const c=await peer();c.send({type:'resume',token:joined.token});assert.equal((await c.wait('joined')).id,1);await c.wait('snapshot');
- c.send({type:'leave'});b.send({type:'leave'});
- const d=await peer(),e=await peer();d.send({type:'random',mode:'ffa'});const dr=await d.wait('room');e.send({type:'random',mode:'ffa'});const er=await e.wait('room');assert.equal(er.code,dr.code);
- await Promise.all([d.wait('snapshot'),e.wait('snapshot')]);
- console.log('PASS: friend rooms, authoritative 2v2, input bounds, reconnect, random matchmaking and four-seat snapshots');
+ const a=await peer(),b=await peer();a.send({type:'create',mode:'teams'});const ja=await a.wait('joined'),r=await a.wait('room');b.send({type:'join',code:r.code});await b.wait('joined');a.send({type:'start'});
+ const room=await a.wait('room',r=>r.started);await b.wait('room',r=>r.started);assert.equal(room.host,1);assert.equal(room.round,1);
+ const route=(to,extra={})=>({to,epoch:room.epoch,round:room.round,...extra});
+ a.send(route(2,{type:'signal',data:{description:{type:'offer',sdp:'test-only'}}}));assert.equal((await b.wait('signal')).from,1);
+ b.send(route(1,{type:'relay',payload:{type:'input',control:{fire:true}}}));assert.equal((await a.wait('relay')).payload.control.fire,true);
+ b.send(route(1,{type:'relay',payload:{type:'state',state:{scores:{1:999}}}}));await sleep(80);assert.equal(a.messages.filter(m=>m.type==='relay').length,0);
+ a.send(route(2,{type:'signal',epoch:0,data:{bad:true}}));await sleep(80);assert.equal(b.messages.filter(m=>m.type==='signal').length,0);
+ const outsider=await peer();outsider.send({type:'create'});const other=await outsider.wait('room');outsider.send(route(2,{type:'signal',data:{bad:true}}));await sleep(80);assert.equal(b.messages.filter(m=>m.type==='signal').length,0);
+ const d=await peer();d.send({type:'join',code:other.code});await d.wait('joined');outsider.send({type:'start'});const otherStarted=await outsider.wait('room',r=>r.started);
+ outsider.send({type:'relay',to:2,epoch:otherStarted.epoch,round:otherStarted.round,payload:{type:'state'}});await outsider.wait('relayBusy');
+ a.send({type:'visibility',visible:false});const moved=await b.wait('room',r=>r.host===2);assert.ok(moved.epoch>room.epoch);
+ a.ws.close();await sleep(100);const resumed=await peer();resumed.send({type:'resume',token:ja.token});assert.equal((await resumed.wait('joined')).id,1);const rr=await resumed.wait('room');assert.equal(rr.host,2);
+ b.ws.close();const takeover=await resumed.wait('room',r=>r.host===1);assert.ok(takeover.epoch>moved.epoch);
+ const e=await peer(),f=await peer();e.send({type:'random'});const er=await e.wait('room');f.send({type:'random'});assert.equal((await f.wait('room')).code,er.code);await e.wait('room',r=>r.started);
+ const health=await(await fetch('http://127.0.0.1:'+port+'/health')).json();assert.equal(health.architecture,'peer-hosted');assert.ok(health.active>=3);
+ console.log('PASS: friend/random rooms, signal isolation, stale epoch rejection, host-only state, bounded relay, visibility takeover, resume and host disconnect');
 }finally{for(const ws of sockets)ws.close();child.kill('SIGTERM');}

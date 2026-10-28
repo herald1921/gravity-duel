@@ -68,6 +68,12 @@ export class Match {
     this.bullets = []; this.laserBeams = []; this.phase = 'ready'; this.phaseTime = C.ROUND_START_TIME;
     this.lastDeath = null; this.roundWinner = null; this.draw = false; this.events.push({ type: 'respawn' });
   }
+  continuation() { return { pickupIn:this.pickupIn,pickupSequence:this.pickupSequence,spawnCursor:this.spawnCursor,
+    deathCounts:{...this.deathCounts},scoringHighlights:Object.fromEntries(Object.entries(this.scoringHighlights).map(([id,set])=>[id,[...set]])),roundHighlights:[...this.roundHighlights] }; }
+  restoreContinuation(data:ReturnType<Match['continuation']>):void {
+    if(!data)return;this.pickupIn=data.pickupIn;this.pickupSequence=data.pickupSequence;this.spawnCursor=data.spawnCursor;
+    Object.assign(this.deathCounts,data.deathCounts);for(const ship of this.ships)this.scoringHighlights[ship.id]=new Set(data.scoringHighlights[ship.id]??[]);this.roundHighlights=new Set(data.roundHighlights);
+  }
   drainEvents(): MatchEvent[] { return this.events.splice(0); }
   fire(id: PlayerId): boolean {
     const ship = this.ships[id - 1];

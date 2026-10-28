@@ -211,10 +211,11 @@ export class GameScene extends Phaser.Scene {
   private updateOnline(delta:number):void {
     const client=this.online!, dt=Math.min(.1,delta/1000);this.visualTime+=dt;this.hud.tick(dt);this.netInputIn-=dt;
     if(this.netInputIn<=0){this.netInputIn=1/30;client.input(pause.paused||!client.healthy?{...IDLE_CONTROL,independentAim:true}:this.humanControl(1));this.pendingFire=[false,false];this.touch?.state.consumeFire();}
+    client.tick(dt);
     const state=client.snapshot;
     if(state&&state!==this.netSeen){this.netSeen=state;this.processEvents(state.events);}
     const rendered=client.renderState();if(rendered)applySnapshot(this.match,rendered);
-    this.netStatus?.setText(client.healthy?'ONLINE · P'+this.localId+' · '+client.latency+' ms':client.status);
+    this.netStatus?.setText(client.healthy&&!client.waiting?client.transport+' · P'+this.localId+' · '+client.latency+' ms':client.status);
     this.effects.update(dt,this.match.ships,this.match.phase==='playing');this.previewIn-=dt;
     this.touch?.update(!pause.paused&&client.healthy&&this.match.phase==='playing');this.touch?.setReload(this.match.ships[this.localId-1].cooldown/C.FIRE_COOLDOWN);
     platform.setGameplay(client.healthy&&this.match.phase==='playing'&&!pause.paused);

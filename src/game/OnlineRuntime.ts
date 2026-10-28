@@ -6,6 +6,7 @@ import { difficultyFor } from '../ai/Difficulty.js';
 import { RivalSelector } from '../ai/RivalSelector.js';
 import { OpeningFireGate } from './OpeningFireGate.js';
 import { SquadCoordinator } from '../ai/SquadCoordinator.js';
+import type { AimPlanner } from '../ai/TrajectoryPlanner.js';
 import { PHYSICS_DT } from '../config.js';
 export type OnlineMode = 'ffa' | 'teams';
 export function onlineMap(id: string, mode: OnlineMode) {
@@ -20,11 +21,14 @@ export class OnlineRuntime {
   readonly match: Match;
   readonly humans = new Set<PlayerId>();
   private controls = new Map<PlayerId, { input: ShipControl; age: number }>();
-  private ais = Array.from({length:4}, () => new SpaceAI(Math.random, (request,done)=>done(findAimSolution(request.self,request.target,request.bodies,request.context,request.weapon,36)), difficultyFor(14)));
+  private ais: SpaceAI[];
   private selectors = Array.from({length:4}, () => new RivalSelector());
   private gates = Array.from({length:4}, () => new OpeningFireGate(null, difficultyFor(14)));
   private squads = [new SquadCoordinator(14), new SquadCoordinator(14)];
-  constructor(readonly mapId: string, readonly mode: OnlineMode) { this.match = new Match(onlineMap(mapId, mode), 3); }
+  constructor(readonly mapId: string, readonly mode: OnlineMode, planner?: AimPlanner) {
+    this.match = new Match(onlineMap(mapId, mode), 3);
+    this.ais=Array.from({length:4},()=>new SpaceAI(Math.random,planner??((r,done)=>done(findAimSolution(r.self,r.target,r.bodies,r.context,r.weapon,36))),difficultyFor(14)));
+  }
   input(id: PlayerId, value: ShipControl): void {
     const prior = this.controls.get(id);
     this.controls.set(id, {input: {...value, fire: value.fire || prior?.input.fire === true}, age: 0});
@@ -52,13 +56,13 @@ export class OnlineRuntime {
   }
 }
 export function snapshot(m: Match) {
-  return { ships:m.ships.map(ship=>({...ship})), bullets:m.bullets.map(b=>({...b,netId:b.ownerId+'-'+Math.round(((b.time??m.time)-b.age)*120),trail:[]})), pickups:m.pickups,
+  return { ships:m.ships.map(ship=>({...ship})), bullets:m.bullets.map(b=>({...b,netId:b.ownerId+'-'+Math.round(((b.time??m.time)-b.age)*120),trail:[] as {x:number;y:number}[]})), pickups:m.pickups,
     laserBeams:m.laserBeams, scores:m.scores, phase:m.phase, phaseTime:m.phaseTime, time:m.time,
-    winner:m.winner, roundWinner:m.roundWinner, lastDeath:m.lastDeath, draw:m.draw, events:m.drainEvents() };
+    continuation:m.continuation(), winner:m.winner, roundWinner:m.roundWinner, lastDeath:m.lastDeath, draw:m.draw, events:m.drainEvents() };
 }
 export type Snapshot = ReturnType<typeof snapshot>;
 export function applySnapshot(m: Match, s: Snapshot): void {
   s.ships.forEach((ship,i)=>Object.assign(m.ships[i],ship));Object.assign(m.scores,s.scores);
   m.bullets=s.bullets;m.pickups=s.pickups;m.laserBeams=s.laserBeams;m.phase=s.phase;m.phaseTime=s.phaseTime;
-  m.time=s.time;m.winner=s.winner;m.roundWinner=s.roundWinner;m.lastDeath=s.lastDeath;m.draw=s.draw;
+  m.restoreContinuation(s.continuation);m.time=s.time;m.winner=s.winner;m.roundWinner=s.roundWinner;m.lastDeath=s.lastDeath;m.draw=s.draw;
 }
