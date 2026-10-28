@@ -13,7 +13,7 @@ export class MapSelectScene extends Phaser.Scene {
  private unit=0;private practice=false;private maps:readonly GameMap[]=[];private footer!:Phaser.GameObjects.Text;
  constructor(){super('MapSelect');}
  init(data:{mode?:GameMode;unit?:number;practice?:boolean}):void{
-  this.mode=data.mode==='2p'&&!device.touch?'2p':'1p';this.unit=Math.max(0,Math.min(2,data.unit??unitForIndex(profile.data.runIndex??0)));this.practice=data.practice===true;
+  this.mode='1p';this.unit=Math.max(0,Math.min(2,data.unit??unitForIndex(profile.data.runIndex??0)));this.practice=data.practice===true;
  }
  create():void{
   this.cards=[];platform.setGameplay(false);drawBackground(this);

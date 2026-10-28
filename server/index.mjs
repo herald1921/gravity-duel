@@ -6,7 +6,7 @@ const rooms=new Map(),peers=new Set(),livePeers=new Set(),maxRooms=Number(proces
 const origins=(process.env.ALLOWED_ORIGINS||'https://herald1921.github.io,http://127.0.0.1:5176,http://localhost:5176').split(',');
 let outbound=0,inbound=0,relayed=0,relayDay=Math.floor(Date.now()/86400000),relayDayBytes=0;
 const relayDailyLimit=Number(process.env.RELAY_DAILY_MB||32)*1048576;
-const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.1',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
+const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.3',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
 const wss=new WebSocketServer({noServer:true,maxPayload:32768,perMessageDeflate:false});
 server.on('upgrade',(req,socket,head)=>{if(!origins.includes(req.headers.origin)||livePeers.size>=maxRooms*4+20){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
 function send(p,value){if(p.ws.readyState===1&&p.ws.bufferedAmount<256000){const data=JSON.stringify(value);outbound+=Buffer.byteLength(data);p.ws.send(data);}}
@@ -58,7 +58,9 @@ wss.on('connection',ws=>{
   if(rooms.size>=maxRooms)throw Error('Server is full. Please try again shortly.');let code;do{code=randomBytes(4).toString('hex').toUpperCase();}while(rooms.has(code));
   const room={code,mode,mapId:typeof msg.mapId==='string'&&msg.mapId.length<32?msg.mapId:'unit-1-5',random:msg.type==='random',peers:[],started:false,startAt:0,host:0,epoch:0,round:0,hostPulse:0,relayUntil:0};rooms.set(code,room);join(p,room);
  }catch(e){send(p,{type:'error',message:e instanceof SyntaxError?'Invalid message':e.message});}});
- ws.on('close',()=>{livePeers.delete(p);p.lastSeen=Date.now();const r=p.room;if(!r?.started){leave(p);peers.delete(p);}else{if(r.host===p.id)elect(r,p);broadcast(r,state(r));}});ws.on('error',()=>ws.close());
+ // Keep lobby seats for the same 30-second reconnect window as active games.
+ // A brief network interruption must not invalidate an invite already shared.
+ ws.on('close',()=>{livePeers.delete(p);p.lastSeen=Date.now();const r=p.room;if(!r){peers.delete(p);}else{if(r.host===p.id)elect(r,p);broadcast(r,state(r));}});ws.on('error',()=>ws.close());
 });
 let heartbeats=0;
 const timer=setInterval(()=>{

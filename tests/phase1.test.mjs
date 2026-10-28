@@ -46,7 +46,7 @@ test('portal rotates hull and cannon by the same angle preserving their relative
 test('playtest controls persist under a separate key without touching the original save',()=>{
  const values=new Map([['gravity-tanks-profile-v1','original data']]);const store={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
  const p=new Profile(()=>store);assert.equal(p.data.controls,'modern');p.setControls('classic');p.begin(2);
- assert.equal(new Profile(()=>store).data.controls,'classic');assert.notEqual(SAVE_KEY,'gravity-tanks-profile-v1');assert.equal(values.get('gravity-tanks-profile-v1'),'original data');
+ assert.equal(new Profile(()=>store).data.controls,'modern');assert.notEqual(SAVE_KEY,'gravity-tanks-profile-v1');assert.equal(values.get('gravity-tanks-profile-v1'),'original data');
 });
 test('inter-round wait is shorter without removing readable death feedback',()=>{
  assert.ok(ROUND_START_TIME+RESPAWN_DELAY<=1.4);assert.ok(RESPAWN_DELAY>=.6);

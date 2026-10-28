@@ -1,0 +1,21 @@
+{
+  "version": "0.12.3",
+  "status": "submission-preparation",
+  "changes": [
+    "Modern controls only; old preference migrates without changing progress",
+    "Local same-keyboard scene entry disabled",
+    "Pre-match lobby disconnect retains room and seat for 30 seconds"
+  ],
+  "tests": {
+    "unit": 193,
+    "failed": 0,
+    "serverSmoke": "passed including pre-match resume",
+    "serverReconnect": "24 players into 6 full rooms passed"
+  },
+  "crazyGames": {
+    "submitted": false,
+    "platformMultiplayer": "pending",
+    "mobileHardware": "not verified this run"
+  },
+  "archives": "v0.12.2 web, offline and platform files preserved"
+}

@@ -31,7 +31,7 @@ export class Profile {
       const paint = PAINTS.find(p => p.id === s.paint && p.badges <= badges.length)?.id ?? 'teal';
       this.data = { version: 1, runIndex: arenaIndex(s.runIndex) ? s.runIndex : null,
         cleared: Array.isArray(s.cleared) ? [...new Set(s.cleared.filter(arenaIndex))] : [],
-        tutorialDone: s.tutorialDone === true, music: s.music !== false, sfx: s.sfx !== false, badges, paint, controls: s.controls === 'classic' ? 'classic' : 'modern' };
+        tutorialDone: s.tutorialDone === true, music: s.music !== false, sfx: s.sfx !== false, badges, paint, controls: 'modern' };
       if (!current && v0110) {
         const migrate = (n: number) => n < 6 ? n : n < 15 ? n + 1 : n + 2;
         this.data.cleared = this.data.cleared.filter(n => n < 27).map(migrate);
@@ -68,6 +68,6 @@ export class Profile {
   }
   get paintColor(): number { return PAINTS.find(p => p.id === this.data.paint)!.color; }
   finishTutorial(): void { this.data.tutorialDone = true; this.save(); }
-  setControls(controls: 'modern' | 'classic'): void { this.data.controls = controls; this.save(); }
+  setControls(_controls: 'modern' | 'classic'): void { this.data.controls = 'modern'; this.save(); }
   setAudio(music: boolean, sfx: boolean): void { this.data.music = music; this.data.sfx = sfx; this.save(); }
 }

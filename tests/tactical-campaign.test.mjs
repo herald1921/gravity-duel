@@ -117,7 +117,7 @@ test('6/9/12 campaign migration preserves completed identities and cosmetics wit
   const values=new Map([['gravity-duel-campaign-v0100',old]]),store={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
   const p=new Profile(()=>store);assert.equal(p.data.cleared.length,24);assert.equal(p.data.runIndex,6);
   for(const i of [6,16,24,25,26,29])assert.ok(!p.data.cleared.includes(i));
-  assert.equal(p.data.paint,'amber');assert.equal(p.data.music,false);assert.equal(p.data.controls,'classic');
+  assert.equal(p.data.paint,'amber');assert.equal(p.data.music,false);assert.equal(p.data.controls,'modern');
   p.clearArena(6);assert.equal(values.get('gravity-duel-campaign-v0100'),old);assert.ok(values.has(SAVE_KEY));assert.equal(new Profile(()=>store).data.cleared.length,25);
 });
 

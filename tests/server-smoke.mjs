@@ -6,6 +6,13 @@ const port=await new Promise((resolve,reject)=>{child.stdout.on('data',c=>{const
 const sockets=[];const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function peer(){const ws=new WebSocket('ws://127.0.0.1:'+port,{origin:'http://127.0.0.1:5176'}),messages=[];sockets.push(ws);ws.on('message',r=>messages.push(JSON.parse(r)));await new Promise((r,j)=>{ws.once('open',r);ws.once('error',j);});return {ws,messages,send:m=>ws.send(JSON.stringify(m)),wait:async(type,p=()=>true)=>{for(let i=0;i<300;i++){const ix=messages.findIndex(m=>m.type===type&&p(m));if(ix>=0)return messages.splice(ix,1)[0];await sleep(20);}throw Error('timeout '+type);}};}
 try{
+ const lobby=await peer();lobby.send({type:'create',mode:'ffa'});const identity=await lobby.wait('joined'),invite=await lobby.wait('room');
+ await new Promise(resolve=>{lobby.ws.once('close',resolve);lobby.ws.close();});
+ const returning=await peer();returning.send({type:'resume',token:identity.token});assert.equal((await returning.wait('joined')).id,1);
+ const restored=await returning.wait('room');assert.equal(restored.code,invite.code);assert.equal(restored.started,false);assert.equal(restored.owner,1);
+ const invited=await peer();invited.send({type:'join',code:invite.code});assert.equal((await invited.wait('joined')).id,2);
+ returning.send({type:'start'});await returning.wait('room',r=>r.started);await invited.wait('room',r=>r.started);
+ returning.send({type:'leave'});invited.send({type:'leave'});
  const a=await peer(),b=await peer();a.send({type:'create',mode:'teams'});const ja=await a.wait('joined'),r=await a.wait('room');b.send({type:'join',code:r.code});await b.wait('joined');a.send({type:'start'});
  const room=await a.wait('room',r=>r.started);await b.wait('room',r=>r.started);assert.equal(room.host,1);assert.equal(room.round,1);
  const route=(to,extra={})=>({to,epoch:room.epoch,round:room.round,...extra});

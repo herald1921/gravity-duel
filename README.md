@@ -1,7 +1,7 @@
-# Gravity Duel — v0.12.2 playtest
+# Gravity Duel — v0.12.3 playtest
 
 Play: https://herald1921.github.io/gravity-duel/
-Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.1/
+Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.2/
 
 ## Campaign and controls
 
@@ -13,7 +13,7 @@ Previous release: https://herald1921.github.io/gravity-duel/legacy-v0.12.1/
 - FFA: four independent pilots; no respawns within a round. The last survivor earns one point, first to three round wins. A simultaneous total wipe is a draw with no points. Eliminated humans spectate until the next round. AI spreads pressure toward unattended opponents, avoids prolonged target fixation and avoids adding a third attacker when another rival is available. Humans and AI use identical targeting criteria; no participation requirement is imposed on the survivor. This reduces, but cannot eliminate, occasional wins without firing.
 - Bosses: four/six/eight-cannon patterns, visible warnings, locked aim before firing, recovery windows, 3/4/5 core health. Later bosses alternate lasers. Bosses ignore their own projectiles; normal pilots still risk returning fire. The player starts with a shield.
 - AI: beginner ramp only in the first unit; later units retain full tactics. Movement candidates are projected through the same ship physics, moving-body collisions, gravity, neutron beams and wormholes used in live combat. Existing pickup strategies and coordinated squad pressure remain.
-- Desktop: WASD movement, mouse aim, click/Space fire. P/Esc pause, R retry. Classic controls remain selectable on desktop.
+- Desktop: WASD movement, mouse aim, click/Space fire. P/Esc pause, R retry. Only independent movement and aiming are available. Old classic-control preferences load as modern controls; the old same-keyboard duel is disabled at scene entry.
 - Phone: left stick moves, right stick aims; **release to shoot once**. Return the right stick to center before releasing to cancel. Touch cancellation, pause and focus loss clear pending fire. Guidance lines require the pickup outside flight school.
 - Graphics: 2560×1440 render buffer with a fixed 1280×720 world and sharper text. Input is converted through the camera so scaling does not change aim or touch positions.
 

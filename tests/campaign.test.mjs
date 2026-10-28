@@ -145,7 +145,7 @@ test('new campaign preserves old save and carries settings across without unlock
   const old = JSON.stringify({ version: 1, runIndex: 8, cleared: [0, 1, 8], tutorialDone: true, music: false, sfx: true, controls: 'classic', badges: ['portal'], paint: 'amber' });
   const values = new Map([['gravity-duel-playtest-v090', old]]), storage = { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v) };
   const p = new Profile(() => storage); assert.deepEqual(p.data.cleared, []); assert.equal(p.data.runIndex, null);
-  assert.equal(p.data.music, false); assert.equal(p.data.controls, 'classic'); assert.equal(p.data.paint, 'amber');
+  assert.equal(p.data.music, false); assert.equal(p.data.controls, 'modern'); assert.equal(p.data.paint, 'amber');
   p.clearArena(0); assert.equal(values.get('gravity-duel-playtest-v090'), old); assert.ok(values.has(SAVE_KEY));
   assert.deepEqual(new Profile(() => storage).data.cleared, [0]);
 });

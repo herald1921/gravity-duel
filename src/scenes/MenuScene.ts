@@ -9,16 +9,13 @@ export class MenuScene extends Phaser.Scene {
   constructor(){super('Menu');}
   create():void {
     platform.setGameplay(false);drawBackground(this);this.seconds=0;
-    label(this,64,44,'ORBITAL COMBAT  /  FLIGHT TEST 0.12.2',22,'#70e9d4');
+    label(this,64,44,'ORBITAL COMBAT  / 0.12.3',22,'#70e9d4');
     this.add.text(60,102,'GRAVITY\nDUEL',{resolution:2,fontFamily:'Arial',fontSize:'82px',fontStyle:'bold',color:'#f0f6ff',lineSpacing:-13});
     label(this,65,294,'A little gravity. A perfect shot.',26,'#b8cbdf');
     const saved=profile.data.runIndex;
     button(this,64,365,saved===null?474:320,86,saved===null?'PLAY  →':'CONTINUE →',()=>this.startRun(saved??0));
     if(saved!==null)button(this,402,365,136,86,'NEW RUN',()=>this.startRun(0),0xa9c1d9);
-    const modern=device.touch||profile.data.controls==='modern';
-    button(this,64,469,474,66,modern?(device.touch?'CONTROLS: DUAL STICK':'CONTROLS: MOVE + MOUSE'):'CONTROLS: CLASSIC',()=>{
-      if(!device.touch)profile.setControls(modern?'classic':'modern');this.scene.restart();
-    },0x9db6df);
+    button(this,64,469,474,66,device.touch?'CONTROLS: DUAL STICK':'CONTROLS: MOVE + MOUSE',()=>this.scene.start('Tutorial',{returnToMenu:true}),0x9db6df);
     button(this,64,553,228,66,'CAMPAIGN',()=>this.scene.start('MapSelect',{mode:'1p'}),0xa9c1d9);
     button(this,310,553,228,66,'HANGAR',()=>this.scene.start('Hangar'),0xa9c1d9);
     button(this,64,636,228,58,'FLIGHT SCHOOL',()=>this.scene.start('Tutorial',{returnToMenu:true}),0x8aacca);
@@ -26,7 +23,7 @@ export class MenuScene extends Phaser.Scene {
     soundButton(this,868,35,350,62);
     this.art=this.add.graphics();
     label(this,932,554,'MAKE SPACE YOUR WEAPON',28,'#e8f4ff').setOrigin(.5);
-    label(this,932,598,modern?(device.touch?'Left: move · Right: aim, release to fire':'WASD to move · Mouse to aim + fire'):'W/S thrust + brake · A/D turn · Space fire',22,'#a9c6d8').setOrigin(.5);
+    label(this,932,598,device.touch?'Left: move · Right: aim, release to fire':'WASD to move · Mouse to aim + fire',22,'#a9c6d8').setOrigin(.5);
     label(this,932,644,profile.data.cleared.length+' / 30 CLEARED · 3 UNITS',22,'#70e9d4').setOrigin(.5);
     if(!profile.persistent)label(this,932,687,'Progress lasts only this visit.',22,'#ffce83').setOrigin(.5);
     bindMenuKeys(this,key=>{if(pause.paused)return;if(key==='Enter'||key==='Space')this.startRun(saved??0);});

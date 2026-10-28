@@ -25,7 +25,7 @@ export class TutorialScene extends Phaser.Scene {
  init(data:{returnToMenu?:boolean}):void{this.returnToMenu=data.returnToMenu===true;}
  create():void{
   this.stage=0;this.seconds=0;this.stageTime=0;this.misses=0;this.mouse=undefined;this.firing=false;this.pending=false;this.bullets=[];this.clock.reset();
-  this.modern=device.touch||profile.data.controls==='modern';this.target={id:2,x:823,y:253,radius:32,alive:true};
+  this.modern=true;this.target={id:2,x:823,y:253,radius:32,alive:true};
   pause.set('manual',false);platform.setGameplay(false);drawBackground(this);
   this.spawn=device.touch?{x:320,y:460}:{x:260,y:550};
   this.ship=new Ship(1,{...this.spawn,angle:-.9});this.art=this.add.graphics();

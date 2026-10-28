@@ -49,12 +49,12 @@ export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
   init(data: { mode?: GameMode; mapId?: string; arcadeIndex?: number; online?: OnlineClient }): void {
     this.online=data.online;this.localId=data.online?.id??1;this.netSeen=undefined;this.netInputIn=0;
-    this.mode = data.mode === '2p' && !device.touch ? '2p' : '1p';
+    this.mode = '1p';
     this.arcadeIndex = this.mode === '1p' && Number.isInteger(data.arcadeIndex) ? Math.max(0, Math.min(ARCADE.length - 1, data.arcadeIndex!)) : null;
     this.mapId = this.arcadeIndex === null ? data.mapId ?? 'classic-orbit' : ARCADE[this.arcadeIndex].mapId;
   }
   create(): void {
-    this.modern = !!this.online || this.mode === '1p' && (device.touch || profile.data.controls === 'modern'); this.mouseFire = false; this.mouseAim = undefined;
+    this.modern = true; this.mouseFire = false; this.mouseAim = undefined;
     this.generation++; this.transitioning = false; this.savedResult = false; this.wasJammed = false;
     if (this.arcadeIndex !== null) profile.begin(this.arcadeIndex);
     const map = this.online?.room ? onlineMap(this.online.room.mapId,this.online.room.mode) : getMap(this.mapId);
