@@ -21,7 +21,7 @@ Campaign saves use `gravity-duel-campaign-v0120`. v0.11 completion migrates to t
 
 ## Online multiplayer
 
-**The client and server are implemented and locally tested. Public matchmaking is unavailable until a server is deployed and `public/online.json` is configured.** The lobby reports this explicitly; it does not pretend that bots are remote players.
+**The peer-hosted client and signaling server are deployed for public playtesting.** `public/online.json` points to `wss://gravity-duel-online.onrender.com`. Friend/random internet play and capacity validation are recorded separately below; a live health endpoint alone does not prove 1,000 stable matches.
 
 The same WebSocket service supports computer and phone, random matching and friend room codes/invite links. At least two connected humans are needed; empty seats are AI. Up to four humans can join before starting. Two modes:
 
@@ -54,10 +54,10 @@ Open `http://127.0.0.1:5176/` in two browser tabs for a local online match. Loca
 
 The included `render.yaml` defines one **free** Render Node service with a health endpoint, a 1,000-room admission cap and a two-room relay cap. The game itself needs no database or secrets. This Render account currently requests card verification even for the free instance; the account owner must complete it. A card on file can enable charges for usage beyond included allowances. A free instance is not a guarantee of zero bills. Render account creation and any terms acceptance must be completed by the account owner. Free service availability, sleep/wake latency and capacity remain hosting limitations, so this is a playtest deployment, not a production service promise.
 
-1. Sign in to Render, create a Blueprint from `https://github.com/herald1921/gravity-duel`, and review `render.yaml`. Keep the free plan.
+1. For a fresh deployment, sign in to Render, create a Blueprint from `https://github.com/herald1921/gravity-duel`, and review `render.yaml`. Keep the free plan.
 2. Wait for `/health` on the assigned HTTPS hostname to return version `0.12.1`.
 3. Set `public/online.json` to `{"endpoint":"wss://YOUR-ASSIGNED-HOST.onrender.com"}` using the actual assigned hostname, then rebuild and publish the client.
-4. Verify a friend room and a random match from two devices on different networks. No public online completion is claimed before that test.
+4. Verify a friend room and a random match from two devices on different networks. The local browser checks do not replace this cross-network acceptance test.
 
 `ALLOWED_ORIGINS` is restricted to the GitHub Pages origin in the deployment template. Add the actual platform iframe origin only when integrating a published CrazyGames build. CrazyGames hosts game files and provides invite/room SDK hooks, but developers provide the real-time multiplayer backend: https://docs.crazygames.com/faq/#do-you-provide-a-server-for-multiplayer-games . The online lobby currently uses its own share links; CrazyGames-specific invite integration remains a platform-release task.
 

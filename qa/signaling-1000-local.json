@@ -3,22 +3,22 @@
   "location": "local workstation",
   "rooms": 1000,
   "playersPerRoom": 4,
-  "durationSeconds": 182.748,
+  "durationSeconds": 602.368,
   "activeAtEnd": 1000,
   "connectionsAtEnd": 4000,
   "failures": 0,
   "unexpectedHostChanges": 0,
   "signalPackets": 6000,
-  "pingSamples": 2000,
+  "pingSamples": 6600,
   "pingMs": {
     "p50": 4,
-    "p95": 7,
-    "p99": 12,
-    "max": 13
+    "p95": 8,
+    "p99": 384,
+    "max": 411
   },
-  "cpuCores": 0.03556810471250027,
-  "rssMB": 91,
-  "brokerOutboundMBPerHour": 1.4183465756123188,
+  "cpuCores": 0.04095669092647684,
+  "rssMB": 95,
+  "brokerOutboundMBPerHour": 1.4199957501062472,
   "health": {
     "ok": true,
     "version": "0.12.1",
@@ -26,11 +26,11 @@
     "rooms": 1000,
     "active": 1000,
     "peers": 4000,
-    "cpuSeconds": 11.812,
-    "uptime": 198.4305724,
-    "rssMB": 91,
-    "outboundBytes": 15773000,
-    "inboundBytes": 13810000,
+    "cpuSeconds": 29.03,
+    "uptime": 616.4010955,
+    "rssMB": 95,
+    "outboundBytes": 15938600,
+    "inboundBytes": 16715600,
     "relayBytes": 0
   }
 }
