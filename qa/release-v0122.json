@@ -25,5 +25,20 @@
       "ai3": 1
     },
     "limitations": "One local real-browser match; does not prove idle wins are impossible or replace human balance testing."
+  },
+  "publication": {
+    "commit": "5c4335b",
+    "pages_run": "https://github.com/herald1921/gravity-duel/actions/runs/40701399974",
+    "status": "success",
+    "public_version_and_survival_rules_verified": true,
+    "public_music_resource_observed": true
+  },
+  "public_multiplayer_retest": {
+    "passed": false,
+    "iab": "Lobby connections dropped; expired-room and room-owner errors followed reconnect.",
+    "chrome": "Two clients joined and entered the match; both remained at connection wait, so no completed multiplayer round was verified.",
+    "cause": "Not established. The signaling server and connection client were not changed in this release.",
+    "cleanup": "All test multiplayer tabs closed; the deliverable tab is a solo practice match.",
+    "scope": "No claim of cross-device or cross-network multiplayer acceptance."
   }
 }

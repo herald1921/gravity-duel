@@ -90,3 +90,5 @@ This version has not been submitted to CrazyGames.
 ### v0.12.2 playtest update
 
 Outer Space Loop by wipics (CC0) replaces the menu/combat music; provenance is in `assets/audio/README.txt` and the shipped third-party notices. Boss mechanics, maps and health are unchanged. Previous v0.12.1 remains playable at `legacy-v0.12.1/`. The signaling server needs no update for this client-side release.
+
+Validation for v0.12.2: 193 automated tests passed; solo browser play and the published survival rules/music resource were checked. The additional public multiplayer UI retest did **not** pass: IAB lobby connections dropped, and a Chrome pair entered the match but remained waiting for connection. The cause is not established. This does not invalidate the earlier signaling-only capacity measurement, but current end-to-end internet play remains unverified. See `qa/release-v0122.json`.
