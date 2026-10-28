@@ -51,7 +51,7 @@ export class GameHUD {
   announce(text: string, color = '#b6ff74'): void { this.notice.setText(text).setColor(color); this.noticeTime = 2.5; }
   setRewards(ids: BadgeId[]): void { this.rewards = ids; }
   tick(dt: number): void { this.noticeTime = Math.max(0, this.noticeTime - dt); this.resultTime += dt; }
-  name(id: PlayerId): string { if(this.online)return id===this.online.id?'YOU':this.online.room?.players.some(p=>p.id===id)?'P'+id:'AI'+id; return this.mode === '1p' ? id === 1 ? 'YOU' : this.freeForAll ? 'AI ' + (id - 1) : 'AI' : 'P' + id; }
+  name(id: PlayerId): string { if(this.online)return id===this.online.id?'YOU':this.online.room?.players.some(p=>p.id===id&&p.connected&&p.visible)?'P'+id:'AI'+id; return this.mode === '1p' ? id === 1 ? 'YOU' : this.freeForAll ? 'AI ' + (id - 1) : 'AI' : 'P' + id; }
   private scoreText(match: Match): string { if(match.map.teams)return 'TEAM 1 '+match.scores[1]+' : '+match.scores[2]+' TEAM 2'; return match.freeForAll ? match.ships.map(s => this.name(s.id) + ' ' + match.scores[s.id]).join(' / ') : this.name(1) + ' ' + match.scores[1] + ' : ' + match.scores[2] + ' ' + this.name(2); }
   activatePrimary(): void { if (!pause.has('ad')) this.primary?.(); }
   private panel(key: string, title: string, detail: string, actions: [string, () => void][]): void {
@@ -111,7 +111,7 @@ export class GameHUD {
     else if (match.phase === 'matchOver') {
       if(this.online){const won=match.winner===(match.map.teams?match.team(this.online.id):this.online.id);
         const host=this.online.room?.owner===this.online.id;
-        this.panel('online-over',won?'VICTORY':'MATCH COMPLETE',this.scoreText(match)+(host?'':'\nWaiting for the room creator to rematch.'),host?[['REMATCH',c.restart],['LEAVE ROOM',c.menu]]:[['LEAVE ROOM',c.menu]]);return;}
+        this.panel('online-over-'+this.online.room?.owner+'-'+this.online.room?.players.filter(p=>p.connected).map(p=>p.id).join(','),won?'VICTORY':'MATCH COMPLETE',this.scoreText(match)+(host?'':'\nWaiting for the room creator to rematch.'),host?[['REMATCH',c.restart],['LEAVE ROOM',c.menu]]:[['LEAVE ROOM',c.menu]]);return;}
 
       if (this.arcadeIndex !== null && match.winner === 1) {
         if (nextArena(this.arcadeIndex) === null) this.panel('complete', 'GRAVITY MASTER', 'ALL 3 UNITS / 30 ARENAS COMPLETE', [['PLAY AGAIN', c.again], ['MAIN MENU', c.menu]]);

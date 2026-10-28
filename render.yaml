@@ -15,3 +15,5 @@ services:
         value: 1000
       - key: MAX_RELAY_ROOMS
         value: 2
+      - key: RELAY_DAILY_MB
+        value: 32

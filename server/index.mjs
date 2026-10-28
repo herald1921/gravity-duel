@@ -4,8 +4,9 @@ import { WebSocketServer } from 'ws';
 // This service never imports, simulates or renders game physics. Each room has a browser host.
 const rooms=new Map(),peers=new Set(),maxRooms=Number(process.env.MAX_ROOMS||1000),maxRelayRooms=Number(process.env.MAX_RELAY_ROOMS||2);
 const origins=(process.env.ALLOWED_ORIGINS||'https://herald1921.github.io,http://127.0.0.1:5176,http://localhost:5176').split(',');
-let outbound=0,inbound=0,relayed=0;
-const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.1',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed}));});
+let outbound=0,inbound=0,relayed=0,relayDay=Math.floor(Date.now()/86400000),relayDayBytes=0;
+const relayDailyLimit=Number(process.env.RELAY_DAILY_MB||32)*1048576;
+const server=http.createServer((req,res)=>{const cpu=process.cpuUsage();res.writeHead(req.url==='/health'?200:404,{'content-type':'application/json'});res.end(JSON.stringify({ok:true,version:'0.12.1',architecture:'peer-hosted',rooms:rooms.size,active:[...rooms.values()].filter(r=>r.started).length,peers:peers.size,cpuSeconds:(cpu.user+cpu.system)/1e6,uptime:process.uptime(),rssMB:Math.round(process.memoryUsage().rss/1048576),outboundBytes:outbound,inboundBytes:inbound,relayBytes:relayed,relayDailyLimitMB:relayDailyLimit/1048576}));});
 const wss=new WebSocketServer({noServer:true,maxPayload:32768,perMessageDeflate:false});
 server.on('upgrade',(req,socket,head)=>{if(!origins.includes(req.headers.origin)||peers.size>=maxRooms*4+20){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
 function send(p,value){if(p.ws.readyState===1&&p.ws.bufferedAmount<256000){const data=JSON.stringify(value);outbound+=Buffer.byteLength(data);p.ws.send(data);}}
@@ -38,8 +39,10 @@ wss.on('connection',ws=>{
    if(msg.type==='relay'){
     if(!msg.payload||!['state','input','echo','echoReply'].includes(msg.payload.type))return;
     if(msg.payload.type==='state'&&p.id!==r.host)return;
-    const now=Date.now();if(r.relayUntil<now&&[...rooms.values()].filter(q=>q.relayUntil>now).length>=maxRelayRooms){if(now>p.nextRelayError){send(p,{type:'relayBusy',message:'Connecting directly — fallback relay is busy.'});p.nextRelayError=now+5000;}return;}
-    r.relayUntil=now+5000;relayed+=raw.length;
+    const now=Date.now(),day=Math.floor(now/86400000);if(day!==relayDay){relayDay=day;relayDayBytes=0;}
+    if(relayDayBytes+raw.length>relayDailyLimit){if(now>p.nextRelayError){send(p,{type:'relayBusy',message:'Free relay allowance reached. Try a different network for direct play.'});p.nextRelayError=now+5000;}return;}
+    if(r.relayUntil<now&&[...rooms.values()].filter(q=>q.relayUntil>now).length>=maxRelayRooms){if(now>p.nextRelayError){send(p,{type:'relayBusy',message:'Connecting directly — fallback relay is busy.'});p.nextRelayError=now+5000;}return;}
+    r.relayUntil=now+5000;relayed+=raw.length;relayDayBytes+=raw.length;
    }
    send(target,{type:msg.type,from:p.id,epoch:r.epoch,round:r.round,...(msg.type==='signal'?{data:msg.data}:{payload:msg.payload})});return;
   }

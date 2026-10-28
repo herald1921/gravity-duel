@@ -13,6 +13,7 @@ export class OnlineClient {
   private links=new Map<PlayerId,PeerLink>();private runtime?:OnlineRuntime;private planner?:TrajectoryPlanner;
   private accumulator=0;private publishIn=0;private pulseIn=0;private echoIn=0;private seq=0;private lastState=-1;
   private lastInput=new Map<PlayerId,number>();private inputAt=new Map<PlayerId,number>();private round=0;private epoch=0;
+  private relayIssue='';
   private visible=()=>this.send({type:'visibility',visible:!document.hidden});
   constructor(private endpoint:string,private initial:Record<string,unknown>){document.addEventListener('visibilitychange',this.visible);this.connect();}
   subscribe(fn:()=>void):()=>void {this.listeners.add(fn);return()=>this.listeners.delete(fn);}
@@ -33,6 +34,7 @@ export class OnlineClient {
       }
       if(msg.type==='pong'&&!this.room?.started)this.latency=Math.max(0,Date.now()-msg.time);
       if(msg.type==='error'||msg.type==='relayBusy')this.status=msg.message;
+      if(msg.type==='relayBusy')this.relayIssue=msg.message;
       this.notify();
     }catch{this.status='Invalid server response';this.notify();}};
     ws.onerror=()=>{this.status='Connection failed. The free server may be waking up.';this.notify();};
@@ -96,8 +98,8 @@ export class OnlineClient {
     // A match waits for all connected humans to reach its host. No AI kills during negotiation.
     const ready=this.room.players.every(p=>!p.connected||!p.visible||p.id===this.id||performance.now()-(this.inputAt.get(p.id)??-Infinity)<2000);
     this.waiting=!ready;
-    if(ready){this.accumulator+=Math.min(.1,dt);while(this.accumulator>=PHYSICS_DT){this.runtime.step();this.accumulator-=PHYSICS_DT;}this.status='Hosting on this device';}
-    else {this.accumulator=0;this.status='Waiting for player connection…';}
+    if(ready){this.accumulator+=Math.min(.1,dt);while(this.accumulator>=PHYSICS_DT){this.runtime.step();this.accumulator-=PHYSICS_DT;}this.status='Hosting on this device';this.relayIssue='';}
+    else {this.accumulator=0;this.status=this.relayIssue||'Waiting for player connection…';}
     this.publishIn-=dt;if(this.publishIn<=0){this.publishIn=.05;
       const state=structuredClone(snapshot(this.runtime.match));const packet=this.packet('state',{state,waiting:this.waiting});
       for(const id of this.links.keys())this.transmit(id,packet);this.acceptSnapshot(state);
