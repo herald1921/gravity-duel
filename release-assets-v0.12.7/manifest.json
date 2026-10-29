@@ -1,0 +1,57 @@
+{
+  "game": "Gravity Duel: Orbital Combat",
+  "version": "0.12.7",
+  "provenance": "Native game-rendered art and normal-speed engine simulation. Preview pilots are AI-driven; no human play session is claimed. Silent MP4 clips show planet/moon, star/neutron-star and black-hole/wormhole arenas. Authoring helpers are outside production builds.",
+  "review": "Three covers visually reviewed; six frames sampled from each video; portrait blank opening fixed and re-recorded. Uploaded and accepted by portal.",
+  "assets": [
+    {
+      "file": "cover-landscape.png",
+      "bytes": 2058975,
+      "dimensions": [
+        1920,
+        1080
+      ],
+      "sha256": "bdb0225aa31af9673e67c36502a40809c7b584c4d852059987f9229fb11bc861"
+    },
+    {
+      "file": "cover-portrait.png",
+      "bytes": 966360,
+      "dimensions": [
+        800,
+        1200
+      ],
+      "sha256": "4fb022814440b5660cd575c942f57c02425511f28e94bdb2070472a7574817d9"
+    },
+    {
+      "file": "cover-square.png",
+      "bytes": 726643,
+      "dimensions": [
+        800,
+        800
+      ],
+      "sha256": "e0d8397700106c676b78db2cf4f3ae223306cc2082b4e18b8b337aa2bdc99eff"
+    },
+    {
+      "file": "preview-landscape.mp4",
+      "bytes": 14281973,
+      "dimensions": [
+        1920,
+        1080
+      ],
+      "sha256": "3e60101656442d654e42d96db49f38a6bc688ee7872bf1dd6942acedb1910d28",
+      "durationSeconds": 18.387,
+      "audio": false
+    },
+    {
+      "file": "preview-portrait.mp4",
+      "bytes": 10775812,
+      "dimensions": [
+        1080,
+        1620
+      ],
+      "sha256": "6071abe14162d976ffdb859efe85468c1d5076bd007ab9e74ee39d6fcec1abca",
+      "durationSeconds": 18.488,
+      "audio": false
+    }
+  ]
+}

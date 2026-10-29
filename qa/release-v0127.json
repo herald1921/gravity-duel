@@ -1,7 +1,7 @@
 {
   "version": "0.12.7",
   "title": "Gravity Duel: Orbital Combat",
-  "submitted": false,
+  "submitted": true,
   "changes": [
     "CrazyGames platform invitations, room status, join listener and Instant Multiplayer",
     "SDK loading lifecycle notifications",
@@ -13,7 +13,16 @@
     "log": "qa/v0127-tests.txt"
   },
   "humanPhoneRetest": "v0.12.4 firing fix confirmed by user; touch controls unchanged",
-  "platformMultiplayer": "awaiting upload and browser QA",
+  "platformMultiplayer": {
+    "buildId": "eca6a296-ecf5-4788-965e-2bc5ea0060e9",
+    "uploaded": true,
+    "instantMultiplayer": "Verified private room creation in CrazyGames QA",
+    "inviteLink": "SDK detected; copy button reported success",
+    "invitedClient": "Second preview client joined same room as P2; DIRECT shown",
+    "rematch": "Host initiated new match; original P1/P2 retained and scores reset",
+    "scope": "Two tabs on one machine; not a cross-device or load test",
+    "pending": []
+  },
   "zipSha256": "11d47780d66f636f32f9770163bf0e61c18e0662236577bb8e7529c38cbe1ed9",
   "files": [
     "assets/AimWorker-D8akK1Du.js",
@@ -25,5 +34,19 @@
     "index.html",
     "online.json",
     "THIRD-PARTY-NOTICES.txt"
-  ]
+  ],
+  "evidence": [
+    "qa/v0127-crazygames-host.png",
+    "qa/v0127-crazygames-peer-direct.png",
+    "qa/v0127-crazygames-rematch.png",
+    "qa/v0127-crazygames-submitted.png",
+    "qa/v0127-video-landscape-contact.png",
+    "qa/v0127-video-portrait-contact.png"
+  ],
+  "submissionDate": "2026-10-29",
+  "portalStatus": "AWAITING REVIEW",
+  "gameId": "cc7e310b-b6fd-4ff9-81ce-4d31e7c3c227",
+  "humanEdgeRetest": "User confirmed Edge access works; prior failure was network related.",
+  "qaChecklist": "Completed; deprecated Invite Button marked No because current updateRoom API is used. Current room/invite/join APIs detected.",
+  "portalDetails": "Description, controls, category, tags, three covers and two videos saved. Final form had no reviewer-notes field."
 }

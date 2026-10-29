@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Release video review</title><style>body{background:#081321;color:white;font:16px Arial;margin:20px}video{max-width:900px;max-height:550px}canvas{width:31%;vertical-align:top;margin:.7%}button,select{padding:12px;margin:10px}</style>
+<h1>Release video review</h1><select id="kind"><option>landscape</option><option>portrait</option></select><button id="samples">Show six sample frames</button><p id="meta"></p><video controls muted></video><section id="frames"></section>
+<script>
+const v=document.querySelector('video'),sel=document.querySelector('select'),meta=document.querySelector('#meta');function load(){v.src='../release-assets-v0.12.7/preview-'+sel.value+'.mp4';document.querySelector('#frames').replaceChildren();}sel.onchange=load;v.onloadedmetadata=()=>meta.textContent=`${v.videoWidth} x ${v.videoHeight}, ${v.duration.toFixed(3)} seconds`;load();
+document.querySelector('button').onclick=async()=>{v.pause();document.querySelector('#frames').replaceChildren();for(const t of [0,2,5,8,12,16]){await new Promise(resolve=>{v.onseeked=resolve;v.currentTime=t+.01;});const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;const g=c.getContext('2d');g.drawImage(v,0,0);document.querySelector('#frames').append(c);}meta.textContent+=', 6 frames sampled';};
+</script>
