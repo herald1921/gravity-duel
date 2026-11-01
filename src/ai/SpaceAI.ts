@@ -40,8 +40,10 @@ function findAimCore(self: Launcher & CollisionTarget, target: CollisionTarget,
     if (trajectory.event?.type === 'ship' && trajectory.event.shipId === self.id) distance += 500;
     if (!best || distance < best.distance || (distance === best.distance && trajectory.elapsed < best.trajectory.elapsed)) best = { angle, distance, trajectory };
   };
+  evaluate(Math.atan2(target.y - self.y, target.x - self.x));
   const stride = Math.PI * 2 / samples;
-  for (let i = 0; i < samples; i++) evaluate(i * stride);
+  if ((best! as AimSolution).distance > target.radius * 0.5)
+    for (let i = 0; i < samples; i++) evaluate(i * stride);
   const coarse = best! as AimSolution;
   for (let i = -6; i <= 6; i++) evaluate(coarse.angle + i * stride / 6);
   const result = best! as AimSolution;
@@ -71,11 +73,10 @@ export class SpaceAI {
     if (this.targetId !== target.id) { this.reset(); this.targetId = target.id; }
     this.decisionIn -= dt; this.phaseTime -= dt; this.planAge += dt;
     const weapon = self.specialShot ?? 'normal';
-    if (this.guided !== (self.aimAssistFor > 0)) {
-      this.guided = self.aimAssistFor > 0; this.decisionIn = 0;
+    if (this.guided !== (self.aimAssistFor > 0) || weapon !== this.plannedWeapon) {
+      this.guided = self.aimAssistFor > 0; this.plannedWeapon = weapon; this.decisionIn = 0;
       this.revision++; this.pending = false; this.solution = null;
     }
-    if (weapon !== this.plannedWeapon) { this.decisionIn = 0; this.solution = null; }
     if (this.phaseTime <= 0) {
       this.moving = !this.moving; this.phaseTime = (this.moving ? AI_MOVE_SECONDS : AI_AIM_SECONDS) * (0.85 + this.random() * 0.3);
       if (this.moving) this.side = this.random() > 0.5 ? 1 : -1;
@@ -112,18 +113,16 @@ export class SpaceAI {
         this.targetPoint.x + this.observedVelocity.x * this.planAge - self.x) + this.aimOffset;
     }
     if (moving && this.difficulty?.dodge && bodies.length) {
-      const direction = this.terrain.choose(dt, self, target, bodies, context, navigation.angle, context.shipGravity ?? 'blackHoles', preferredRange(self));
-      navigation.angle = Math.atan2(direction.y, direction.x);
+      const threats=bullets.filter(b=>b.ownerId===self.id?!!b.orbitState:!allies.some(s=>s.id===b.ownerId));
+      const direction=this.terrain.choose(dt,self,target,bodies,context,navigation.angle,context.shipGravity??'blackHoles',preferredRange(self),threats);
+      navigation.angle=Math.atan2(direction.y,direction.x);
     }
-    const independent = this.difficulty?.independentAim === true;
-    const error = angleDifference(moving && !independent ? navigation.angle : this.goalAngle, self.angle);
+    const error = angleDifference(this.goalAngle, self.angle);
     const speed = Math.hypot(self.vx, self.vy);
-    const turn = Math.max(-1, Math.min(1, error * 3));
-    const thrust = moving ? Math.abs(error) < 0.65 ? 1 : speed > 25 ? -1 : 0 : speed > 35 ? -1 : 0;
     // Pressure pilots also threaten a near-miss lane; precision weapons retain their stricter checks.
     const suppressing = order?.role === 'PRESSURE' && weapon === 'normal';
     const deployment = weapon === 'orbital' ? this.solution?.orbital : undefined;
-    let fire = (!moving || independent) && this.planAge >= (this.difficulty?.fireDelay ?? AI_FIRE_DELAY) && Math.abs(error) < (suppressing ? 0.09 : 0.055) &&
+    let fire = this.planAge >= (this.difficulty?.fireDelay ?? AI_FIRE_DELAY) && Math.abs(error) < (suppressing ? 0.09 : 0.055) &&
       (Boolean(deployment) || (this.solution?.distance ?? Infinity) < (weapon === 'orbital' ? 115 : suppressing ? 125 : 75));
     if (fire && deployment) {
       if (self.cooldown <= 1e-9) {
@@ -142,8 +141,8 @@ export class SpaceAI {
       fire = !check.event || (check.event.type === 'ship' && check.event.shipId === target.id);
     }
     if (fire && self.cooldown <= 1e-9 && !this.difficulty) this.phaseTime = Math.min(this.phaseTime, 0.45);
-    return independent ? { turn: 0, thrust: 0, fire, independentAim: true, aim: this.goalAngle,
-      move: moving ? { x: Math.cos(navigation.angle), y: Math.sin(navigation.angle) } : { x: 0, y: 0 } } : { turn, thrust, fire };
+    return { turn: 0, thrust: 0, fire, independentAim: true, aim: this.goalAngle,
+      move: moving ? { x: Math.cos(navigation.angle), y: Math.sin(navigation.angle) } : { x: 0, y: 0 } };
   }
   private navigation(self: Ship, target: Ship, bodies: readonly CelestialBody[], pickups: readonly Pickup[], time: number, bullets: readonly Bullet[], allies: readonly Ship[], order?: SquadOrder): { angle: number; urgent: boolean } {
     const dx = target.x - self.x, dy = target.y - self.y, distance = Math.max(1, Math.hypot(dx, dy));

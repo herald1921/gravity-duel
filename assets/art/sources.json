@@ -1,0 +1,12 @@
+{
+  "author": "Solar System Scope / INOVE",
+  "source": "https://www.solarsystemscope.com/textures/",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "adaptation": "Original files retained. Runtime projects into spheres, reduces terrain colors to illustrated palettes, shades broad light planes, and adds an atmospheric rim.",
+  "files": {
+    "earth.jpg": "767ee1dc6eb3802699bfccf6f264880f8acd0b80de3191cd24984fe279b07b7c",
+    "mars.jpg": "2d187f3e77a98eaa8cea5f4cc722f633c122ef170b9e94ace6b5fb6cbc3f8e01",
+    "moon.jpg": "2764ba6535ea0481a062846ee033cc7a909dae05b31a8fd13f3e98f3a7fd92bd"
+  }
+}

@@ -70,6 +70,27 @@ function circleContact(sx:number,sy:number,ex:number,ey:number,cx:number,cy:numb
   const t = (-b - Math.sqrt(discriminant)) / (2 * a);
   return t >= 0 && t <= 1 ? t : null;
 }
+/** Assisted periodic circuits may enclose a compact pair, including their full motion envelopes.
+ * These are gameplay guidance paths, not claimed exact multi-body gravitational solutions. */
+export function orbitalHosts(bodies: readonly CelestialBody[]): CelestialBody[] {
+  const hosts = bodies.filter(b => b.orbitCaptureRadius);
+  const reach = (b: CelestialBody): number => {
+    let r = b.collisionRadius, m = b.motion;
+    while (m) { r += m.radius; m = m.parent?.motion; }
+    return r;
+  };
+  for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
+    const a = bodies[i], b = bodies[j], x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
+    const r = Math.hypot(a.x - b.x, a.y - b.y) / 2 + Math.max(reach(a), reach(b)) + 20;
+    if (r > 235 || r < 70 || x - r < 45 || x + r > 1235 || y - r < 125 || y + r > 650) continue;
+    // Exclude circuits whose rim crosses another body's full movement envelope.
+    if (bodies.some(c => c !== a && c !== b && Math.abs(Math.hypot(c.x - x, c.y - y) - (r + 45)) < reach(c) + 45)) continue;
+    hosts.push({ id: '@system:' + a.id + '+' + b.id, type: 'planet', x, y, radius: r,
+      collisionRadius: r, gravityStrength: a.gravityStrength + b.gravityStrength,
+      softening: 40, lethal: false, orbitCaptureRadius: r + 85 });
+  }
+  return hosts;
+}
 export function orbitSpeed(body: CelestialBody, radius: number): number {
   return Math.max(C.ORBIT_MIN_SPEED, Math.min(C.ORBIT_MAX_SPEED, Math.sqrt(body.gravityStrength / radius) * C.ORBIT_SPEED_MULTIPLIER));
 }
@@ -117,6 +138,11 @@ export function captureOrbit(state: ProjectileState, body: CelestialBody, time: 
     semiMajorAxis, eccentricity, argumentOfPeriapsis: theta - f,
     meanAnomaly: E - eccentricity * Math.sin(E), meanMotion: Math.sqrt(mu / semiMajorAxis ** 3),
     gravitationalParameter: mu, periapsis: semiMajorAxis * (1 - eccentricity), apoapsis: semiMajorAxis * (1 + eccentricity) };
+  if (body.id.startsWith('@system:')) {
+    const o = state.orbitState;
+    o.eccentricity = 0; o.semiMajorAxis = radius; o.periapsis = radius; o.apoapsis = radius;
+    o.argumentOfPeriapsis = theta; o.meanAnomaly = 0; o.meanMotion = Math.sqrt(mu / radius ** 3);
+  }
   state.justCaptured = true; advanceOrbit(state, body, time, 0);
 }
 function advanceOrbit(state: ProjectileState, body: CelestialBody, time: number, dt: number): void {
@@ -176,7 +202,7 @@ export function stepProjectile(state: ProjectileState, bodies: readonly Celestia
   state.portalCooldown = Math.max(0, (state.portalCooldown ?? 0) - C.PHYSICS_DT);
   const before = { x: state.x, y: state.y }, previousAge = state.age;
   if (state.orbitState) {
-    const host = bodies.find(body => body.id === state.orbitState!.bodyId);
+    const host = (state.orbitState.bodyId.startsWith('@system:') ? orbitalHosts(bodies) : bodies).find(body => body.id === state.orbitState!.bodyId);
     if (!host) return { type: 'expired' };
     state.age += C.PHYSICS_DT; state.time += C.PHYSICS_DT;
     advanceOrbit(state, host, state.time, C.PHYSICS_DT);
@@ -203,8 +229,9 @@ export function stepProjectile(state: ProjectileState, bodies: readonly Celestia
       const t = segmentCircleContact(before, state, gate, state.radius);
       if (t !== null && t < contact) { portal = gate; capture = undefined; event = null; contact = t; }
     }
-    if (!state.orbitState && state.kind === 'orbital') for (const body of bodies) {
-      if ((body.type !== 'planet' && body.type !== 'moon') || !body.orbitCaptureRadius) continue;
+    if (!state.orbitState && state.kind === 'orbital') for (const body of orbitalHosts(bodies)) {
+      if (!body.orbitCaptureRadius) continue;
+      if (body.id.startsWith('@system:') && Math.hypot(before.x - body.x, before.y - body.y) < body.collisionRadius + state.radius + C.ORBIT_MIN_CLEARANCE) continue;
       const t = movingContact(before, state, body, time, body.orbitCaptureRadius, 0);
       if (t !== null && t < contact) { capture = body; portal = undefined; event = null; contact = t; }
     }
@@ -226,7 +253,7 @@ export function stepProjectile(state: ProjectileState, bodies: readonly Celestia
         (target.id !== state.ownerId || previousAge >= C.OWNER_GRACE_TIME) &&
         Math.hypot(state.x - target.x, state.y - target.y) <= target.radius + state.radius) return { type: 'ship', shipId: target.id };
       if (state.kind === 'orbital') {
-        const host = bodies.find(body => (body.type === 'planet' || body.type === 'moon') && body.orbitCaptureRadius &&
+        const host = bodies.find(body => body.orbitCaptureRadius &&
           Math.hypot(state.x - bodyPosition(body, state.time!).x, state.y - bodyPosition(body, state.time!).y) <= body.orbitCaptureRadius);
         if (host) captureOrbit(state, host, state.time!);
       }

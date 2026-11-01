@@ -11,9 +11,9 @@ export function drawOrbit(g: Phaser.GameObjects.Graphics, body: CelestialBody, t
   g.lineStyle(1, 0x87b8d1, 0.35).lineBetween(center.x - 4, center.y, center.x + 4, center.y)
     .lineBetween(center.x, center.y - 4, center.x, center.y + 4);
 }
-export function drawCelestial(g: Phaser.GameObjects.Graphics, source: CelestialBody, time = 0): void {
+export function drawCelestial(g: Phaser.GameObjects.Graphics, source: CelestialBody, time = 0, textured=true): void {
   const body = bodyAt(source, time);
-  if (body.type !== 'pulsar') { drawBody(g, body, time); return; }
+  if (body.type !== 'pulsar') { drawBody(g, body, time,textured); return; }
   const a = pulsarAngle(body, time), w = PULSAR_BEAM_HALF_WIDTH, length = PULSAR_BEAM_LENGTH;
   g.save().translateCanvas(body.x, body.y).rotateCanvas(a);
   g.fillStyle(0x6ae7ff, 0.17).fillRect(-length, -w, length * 2, w * 2);

@@ -1,3 +1,5 @@
+import type { Bullet } from '../entities/Bullet.js';
+import { simulateTrajectory } from '../physics/gravity.js';
 import { ARENA_BOUNDS, PHYSICS_DT } from '../config.js';
 import { Ship, type ShipControl } from '../entities/Ship.js';
 import { withEphemeris, bodyPosition, inPulsarBeam, type CelestialBody } from '../entities/CelestialBody.js';
@@ -10,14 +12,17 @@ export class TerrainPilot {
   private until = 0; private direction: Vec2 = { x: 0, y: 0 };
   reset(): void { this.until = 0; }
   choose(dt: number, self: Ship, target: Vec2, bodies: readonly CelestialBody[], context: SpaceContext,
-    desired: number, gravity: 'none' | 'all' | 'blackHoles', range: number): Vec2 {
-    return withEphemeris(()=>this.chooseCached(dt,self,target,bodies,context,desired,gravity,range));
+    desired: number, gravity: 'none' | 'all' | 'blackHoles', range: number, bullets: readonly Bullet[] = []): Vec2 {
+    return withEphemeris(()=>this.chooseCached(dt,self,target,bodies,context,desired,gravity,range,bullets));
   }
   private chooseCached(dt: number, self: Ship, target: Vec2, bodies: readonly CelestialBody[], context: SpaceContext,
-    desired: number, gravity: 'none' | 'all' | 'blackHoles', range: number): Vec2 {
+    desired: number, gravity: 'none' | 'all' | 'blackHoles', range: number, bullets: readonly Bullet[] = []): Vec2 {
     this.until -= dt;
     if (this.until > 0) return this.direction;
     this.until = 0.3;
+    // Predict threats once, reuse against every candidate flight path.
+    const threats = bullets.filter(b => Math.hypot(b.x-self.x,b.y-self.y)<550).sort((a,b)=>Math.hypot(a.x-self.x,a.y-self.y)-Math.hypot(b.x-self.x,b.y-self.y)).slice(0,8)
+      .map(b => simulateTrajectory(b,bodies,[],1.2,12,context).points);
     let best = Infinity;
     for (const delta of [0, 0.45, -0.45, 0.9, -0.9, 1.5, -1.5, 2.3, -2.3, Math.PI]) {
       const angle = desired + delta, move = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -32,6 +37,14 @@ export class TerrainPilot {
           const exit = gate && context.wormholes?.find(w => w.id === gate.exitId);
           if (gate && exit) teleportShip(probe, gate, exit);
         }
+        if ((step + 1) % 12 === 0) {
+          for (const path of threats) {
+            const p = path[(step+1)/12];
+            if(!p)continue;
+            cost += Math.max(0,70-Math.hypot(probe.x-p.x,probe.y-p.y))*35;
+          }
+        }
+        if (cost >= best) break;
         if (step % 12 === 0) for (const body of bodies) {
           const p = bodyPosition(body, time), clearance = Math.hypot(probe.x - p.x, probe.y - p.y) - body.collisionRadius - probe.radius;
           cost += Math.max(0, (body.lethal ? 75 : 35) - clearance) * (body.lethal ? 3 : 0.8);

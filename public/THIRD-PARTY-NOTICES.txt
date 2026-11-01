@@ -31,3 +31,12 @@ License text: https://creativecommons.org/publicdomain/zero/1.0/
 Local file: assets/audio/outer-space-loop.mp3 (unmodified original)
 SHA256: a47fd0a3b89b697203b7b3bdbaedd6c02f1aae663a723f4287f3c1181c37115e
 The previous 135136 theme remains archived in assets/audio and older builds.
+
+Planet textures — Solar System Scope / INOVE
+Source: https://www.solarsystemscope.com/textures/
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+Files: assets/art/earth.jpg, moon.jpg, mars.jpg (original 2K maps).
+Changes: runtime spherical projection, terrain color quantization, illustrated palettes,
+three-plane lighting and atmospheric rim shading.
+No endorsement by the original authors is implied.

@@ -41,10 +41,9 @@ export class OnlineRuntime {
   step(): void {
     const m = this.match;
     const cooldowns=m.ships.map(s=>s.cooldown);
-    if (this.mode === 'ffa') {
-      if (m.phase === 'playing') this.rivalPressure.update(PHYSICS_DT, m.ships, m.bullets);
-      else { this.rivalPressure.reset(); this.selectors.forEach(s => s.reset()); this.ais.forEach(a => a.reset()); this.gates.forEach(g => g.reset()); }
-    }
+    if(m.phase!=='playing'){
+      this.rivalPressure.reset();this.selectors.forEach(s=>s.reset());this.ais.forEach(a=>a.reset());this.gates.forEach(g=>g.reset());this.squads.forEach(s=>s.reset());
+    }else if(this.mode==='ffa')this.rivalPressure.update(PHYSICS_DT,m.ships,m.bullets);
     if (this.mode === 'teams') for (let i=0;i<2;i++) {
       const allies = m.ships.filter(s=>m.team(s.id)===i+1), target=m.ships.find(s=>s.alive&&m.team(s.id)!==i+1);
       if(target)this.squads[i].update(PHYSICS_DT,allies,target,m.map.bodies,m.time,m.pickups);
@@ -60,14 +59,21 @@ export class OnlineRuntime {
       }
       this.releasedShots.delete(ship.id);
       if(!ship.alive||m.phase!=='playing')return {...IDLE_CONTROL};
-      const target=this.selectors[i].select(PHYSICS_DT,ship,m.rivals(ship.id),m.map.bodies,m.time,this.mode==='ffa'?this.rivalPressure:undefined);
+      const order=this.mode==='teams'?this.squads[m.team(ship.id)-1].orders.get(ship.id):undefined;
+      const target=m.rivals(ship.id).find(s=>s.alive&&s.id===order?.targetId)??this.selectors[i].select(PHYSICS_DT,ship,m.rivals(ship.id),m.map.bodies,m.time,this.mode==='ffa'?this.rivalPressure:undefined);
       if(!target||m.phase!=='playing')return {...IDLE_CONTROL};
       const allies=m.ships.filter(s=>s.id!==ship.id&&m.team(s.id)===m.team(ship.id));
       const control=this.ais[i].update(PHYSICS_DT,ship,target,m.map.bodies,{time:m.time,wormholes:m.map.wormholes,shipGravity:m.map.shipGravity},m.pickups,m.bullets,allies,
-        this.mode==='teams'?this.squads[m.team(ship.id)-1].orders.get(ship.id):undefined);
-      control.fire=this.gates[i].step(PHYSICS_DT,control.fire,ship.cooldown<=1e-9&&!ship.laserCharge);return control;
+        order);
+      if(this.mode==='ffa')control.fire=this.gates[i].step(PHYSICS_DT,control.fire,ship.cooldown<=1e-9&&!ship.laserCharge);return control;
     });
+    if(this.mode==='teams'&&m.phase==='playing')for(let team=1;team<=2;team++){
+      const bots=m.ships.filter(s=>!this.humans.has(s.id)&&m.team(s.id)===team);
+      this.squads[team-1].coordinateFire(PHYSICS_DT,bots,bots.map(s=>controls[s.id-1]),bots.map(s=>this.gates[s.id-1]),
+        bots.map(s=>s.alive&&s.cooldown<=1e-9&&!s.laserCharge),m.time);
+    }
     m.step(controls);
+    if(this.mode==='teams')for(const [i,ship] of m.ships.entries())if(ship.cooldown>cooldowns[i])this.squads[m.team(ship.id)-1].recordShot(ship.id,m.time);
     for(const [i,ship] of m.ships.entries())if(!ship.alive||m.phase!=='playing'||ship.cooldown>Math.max(0,cooldowns[i]-PHYSICS_DT)+1e-8)this.releasedShots.delete(ship.id);
   }
 }

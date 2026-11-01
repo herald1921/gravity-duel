@@ -18,7 +18,7 @@ const pilots = () => [new Ship(2, { x: 1080, y: 530, angle: Math.PI }), new Ship
 const planet = () => createBody('host', 'planet', 640, 380);
 
 test('only unit one is a beginner ramp; all later stages retain full tactics without a reset', () => {
-  assert.equal(difficultyFor(0).independentAim, false);
+  assert.equal(difficultyFor(0).independentAim, true);
   for (let i = 6; i < 27; i++) {
     const d = difficultyFor(i);
     assert.ok(d.dodge && d.independentAim && d.seekPickups);
@@ -50,7 +50,7 @@ test('orbital plans account for moving hosts and reject irrelevant or ineligible
     for (let i = 0; i < Math.round(result.trajectory.elapsed / dt); i++) assert.equal(stepProjectile(live, bodies, [self]), null);
     assert.ok(Math.hypot(live.x - result.trajectory.end.x, live.y - result.trajectory.end.y) < 1e-6);
   }
-  for (const type of ['star', 'pulsar', 'blackHole']) assert.equal(findOrbitalDeployment(self, target, [createBody(type, type, 640, 380)], {}), null);
+  for (const type of ['star', 'pulsar', 'blackHole']) { const plan = findOrbitalDeployment(self, target, [createBody(type, type, 640, 380)], {}); if (plan) assert.equal(plan.orbital.bodyId, type); }
   target.x = 80; target.y = 160;
   assert.equal(findOrbitalDeployment(self, target, [createBody('remote', 'moon', 1080, 220)], {}), null);
 });

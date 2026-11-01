@@ -12,3 +12,6 @@ qa/*.cpuprofile
 # Local account setup evidence; never part of a public release.
 qa/render-card-required.png
 qa/PAUSED.txt
+
+# Immutable local source used only for comparison scripts.
+qa/baseline-v0127/

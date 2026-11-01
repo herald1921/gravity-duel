@@ -1,0 +1,252 @@
+{
+  "version": "0.13.0",
+  "kind": "playtest candidate",
+  "date": "2026-11-01",
+  "baseline": "04a493e / v0.12.7",
+  "crazygames_submission_changed": false,
+  "changes": {
+    "opening": [
+      "Live movement throughout training; first moving target has a clear lane, second target teaches curved fire.",
+      "Stage progress and target destruction feedback; auto-transition into campaign after training.",
+      "First two campaign arenas now require two rounds; later campaign keeps its established rules.",
+      "Visible pickup learning checklist in the first three arenas."
+    ],
+    "combat_readability": [
+      "Elimination cause and owner in floating feedback and a short combat feed.",
+      "Eliminated FFA pilots marked in scoreboard; last survivor still earns the point.",
+      "Distinct shield break, armored boss hit, core hit and core sealed states.",
+      "AI and player guidance pickups both show trajectories. Laser pickup and charging show straight obstruction-aware lines; allied ships do not falsely block previews."
+    ],
+    "boss": [
+      "Tracks target velocity and solves gravity-aware trajectories before locking.",
+      "Cross/fan patterns, stellar laser, final broken ring with an indicated opening.",
+      "Locked warning paths use live projectile physics and future body positions.",
+      "Stable recovery and a single effective core hit per opening.",
+      "Shared muzzle geometry between prediction and live volley."
+    ],
+    "ai": [
+      "Direct-hit fast path retains full angular search when needed.",
+      "Shared pickup/weapon replan invalidation; removed old coupled aim/movement control branch.",
+      "Terrain planner predicts nearby curved projectiles once per navigation decision; prunes losing candidates.",
+      "Squad pressure chosen by clear lane and loadout; faster role reassessment, wider flank, interception of fast targets.",
+      "Online squads share target orders and stagger AI fire without altering human inputs."
+    ],
+    "orbital": [
+      "Wider assisted capture zones for all celestial types.",
+      "Eligible compact pairs support continuous circular guidance circuits around both bodies.",
+      "Bodies, returning self hits and lifetime remain real constraints; not a general N-body periodic-orbit solver."
+    ],
+    "art": [
+      "Unified illustrated sci-fi palette, terrain color reduction, broad light planes and atmospheric edges.",
+      "512px cached planetary spheres rendered from attributed terrain masks; no per-frame pixel processing.",
+      "Mechanical iris boss hulls, lit ship nacelles, streaked impacts and core flash.",
+      "In-game art/audio credits and source/license/hash manifest."
+    ]
+  },
+  "validation": {
+    "automated_tests": 220,
+    "passed": 220,
+    "typecheck": "passed",
+    "web_build": "passed",
+    "offline_build": "passed; textures embedded",
+    "browser": "Silent desktop UI: menu, campaign cards, tutorial movement/progression, boss fight, art sheet; no observed JS errors. Offline HTML served locally loaded with embedded art.",
+    "phone": "Release buffering covered by regression tests; no new physical-phone session this iteration.",
+    "comparison": {
+      "old": {
+        "aimCases": 24,
+        "aimHits": 24,
+        "aimMs": 257,
+        "bossCases": 12,
+        "bossMeanMiss": 106.69507114565853,
+        "bossHitsWithinShipRadius": 0,
+        "bossMisses": [
+          141.35366938452117,
+          141.35366938452117,
+          141.35366938452117,
+          71.51194354980632,
+          71.51194354980632,
+          71.51194354980632,
+          71.72339005550623,
+          71.72339005550623,
+          71.72339005550623,
+          142.1912815928004,
+          142.1912815928004,
+          142.1912815928004
+        ]
+      },
+      "current": {
+        "aimCases": 24,
+        "aimHits": 24,
+        "aimMs": 176,
+        "bossCases": 12,
+        "bossMeanMiss": 5.545467420054419,
+        "bossHitsWithinShipRadius": 12,
+        "bossMisses": [
+          13.280154000432146,
+          4.409981118454323,
+          4.580365809363128,
+          5.820574527377647,
+          1.3312384579758032,
+          3.3555019526401426,
+          6.084503844757398,
+          1.7074990910710897,
+          3.173698389866081,
+          13.979403481829662,
+          5.288632593464386,
+          3.5340557734212292
+        ]
+      }
+    },
+    "boss_terrain_comparison": {
+      "old": {
+        "cases": 12,
+        "hits": 0,
+        "details": [
+          {
+            "map": "unit-1-7",
+            "targetY": 200,
+            "hit": false
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 300,
+            "hit": false
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 450,
+            "hit": false
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 550,
+            "hit": false
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 200,
+            "hit": false
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 300,
+            "hit": false
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 450,
+            "hit": false
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 550,
+            "hit": false
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 200,
+            "hit": false
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 300,
+            "hit": false
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 450,
+            "hit": false
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 550,
+            "hit": false
+          }
+        ]
+      },
+      "current": {
+        "cases": 12,
+        "hits": 12,
+        "details": [
+          {
+            "map": "unit-1-7",
+            "targetY": 200,
+            "hit": true
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 300,
+            "hit": true
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 450,
+            "hit": true
+          },
+          {
+            "map": "unit-1-7",
+            "targetY": 550,
+            "hit": true
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 200,
+            "hit": true
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 300,
+            "hit": true
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 450,
+            "hit": true
+          },
+          {
+            "map": "unit-2-10",
+            "targetY": 550,
+            "hit": true
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 200,
+            "hit": true
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 300,
+            "hit": true
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 450,
+            "hit": true
+          },
+          {
+            "map": "unit-3-13",
+            "targetY": 550,
+            "hit": true
+          }
+        ]
+      }
+    }
+  },
+  "limits": [
+    "Visual quality and opening engagement still require player feedback; tests are not retention measurements.",
+    "Aim timings are a small local deterministic batch, not a mobile FPS or overall AI win-rate guarantee.",
+    "Boss comparisons isolate constant motion or stationary targets; they are not human-play success rates.",
+    "No public signaling capacity workflow or 1000-room load test was run."
+  ],
+  "preservation": {
+    "web-v0.12.7": "unchanged; legacy-v0.12.7 matches original files",
+    "offline-v0.12.7": "preserved; matches Git content after CRLF normalization"
+  },
+  "reproduce": [
+    "node qa/prepare-v0127-baseline.mjs",
+    "node node_modules/typescript/bin/tsc -p tsconfig.test.json",
+    "node --test tests/*.test.mjs",
+    "node qa/compare-v0130.mjs",
+    "node qa/compare-boss-terrain.mjs"
+  ]
+}

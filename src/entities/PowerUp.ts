@@ -12,7 +12,7 @@ export const POWERUP_HELP: Record<PowerUpType, string> = {
   heavy: 'HEAVY: a larger, slower shell for your next shot',
   laser: 'LASER: charge, then fire straight through gravity',
   homing: 'HOMING: tracks briefly; sharp turns can shake it off',
-  orbital: 'ORBITAL: skim a planet to leave a 48-second threat',
+  orbital: 'ORBITAL: aim near a body or compact pair — guidance catches a lasting orbit',
 };
 export function applyPickup(loadout: Loadout, type: PowerUpType): void {
   if (type === 'trajectory') loadout.aimAssistFor = 12;

@@ -54,7 +54,8 @@ test('boss telegraphs before firing, is vulnerable only during recovery, and ign
  m.attack(2,1,deaths);assert.equal(boss.hp,hp);for(let i=0;i<100;i++)m.step(idle);assert.equal(m.bullets.length,0);
  for(let i=0;i<80;i++)m.step(idle);assert.ok(m.drainEvents().some(e=>e.type==='shot'&&e.owner===2));
  m.boss.phase='recover';m.attack(2,1,deaths);assert.equal(boss.hp,hp-1);
- boss.invulnerableFor=0;boss.hp=1;m.attack(2,1,deaths);assert.ok(deaths.has(2));m.resolveDeaths([...deaths.values()]);assert.equal(m.winner,1);
+ boss.invulnerableFor=0;boss.hp=1;m.attack(2,1,deaths);assert.equal(deaths.size,0);
+ m.boss.phase='attack';m.boss.remaining=0;m.boss.step(1/120,boss,m.ships[0],m.map,m.time);m.attack(2,1,deaths);assert.ok(deaths.has(2));m.resolveDeaths([...deaths.values()]);assert.equal(m.winner,1);
  }
 });
 test('online 2v2 preserves two human allies against two AI; ally hits are excluded',()=>{

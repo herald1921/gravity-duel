@@ -9,7 +9,7 @@ export class MenuScene extends Phaser.Scene {
   constructor(){super('Menu');}
   create():void {
     platform.setGameplay(false);drawBackground(this);this.seconds=0;
-    label(this,64,44,'ORBITAL COMBAT  / 0.12.7',22,'#70e9d4');
+    label(this,64,44,'ORBITAL COMBAT  / 0.13.0',22,'#70e9d4');
     this.add.text(60,102,'GRAVITY\nDUEL',{resolution:2,fontFamily:'Arial',fontSize:'82px',fontStyle:'bold',color:'#f0f6ff',lineSpacing:-13});
     label(this,65,294,'A little gravity. A perfect shot.',26,'#b8cbdf');
     const saved=profile.data.runIndex;
@@ -25,7 +25,8 @@ export class MenuScene extends Phaser.Scene {
     label(this,932,554,'MAKE SPACE YOUR WEAPON',28,'#e8f4ff').setOrigin(.5);
     label(this,932,598,device.touch?'Left: move · Right: aim, release to fire':'WASD to move · Mouse to aim + fire',22,'#a9c6d8').setOrigin(.5);
     label(this,932,644,profile.data.cleared.length+' / 30 CLEARED · 3 UNITS',22,'#70e9d4').setOrigin(.5);
-    if(!profile.persistent)label(this,932,687,'Progress lasts only this visit.',22,'#ffce83').setOrigin(.5);
+    label(this,932,685,'ART & AUDIO CREDITS',22,'#91a8bf').setOrigin(.5).setInteractive({useHandCursor:true}).on('pointerdown',()=>this.scene.start('Credits'));
+    if(!profile.persistent)label(this,932,665,'Progress lasts only this visit.',22,'#ffce83').setOrigin(.5);
     bindMenuKeys(this,key=>{if(pause.paused)return;if(key==='Enter'||key==='Space')this.startRun(saved??0);});
     platform.markGameReady();
     const launch=multiplayer.takeLaunch();

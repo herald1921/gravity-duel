@@ -133,7 +133,7 @@ test('swept capture catches a fast entry; normal shots never acquire scripted or
   const normal = shot({ x: planet.x + 148, y: planet.y, vx: -200 }); stepProjectile(normal, [planet]); assert.equal(normal.orbitState, undefined);
   for (const type of ['star', 'blackHole', 'pulsar']) {
     const other = createBody(type, type, 640, 375, { orbitCaptureRadius: 200 });
-    const s = shot({ x: 790, y: 375, kind: 'orbital' }); stepProjectile(s, [other]); assert.equal(s.orbitState, undefined);
+    const s = shot({ x: 790, y: 375, kind: 'orbital' }); stepProjectile(s, [other]); assert.equal(s.orbitState.bodyId, other.id);
   }
 });
 test('Cartesian angular momentum sets CCW/CW deterministically, including radial fallback', () => {

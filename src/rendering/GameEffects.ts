@@ -17,7 +17,7 @@ export class GameEffects {
 
   notice(position: Vec2, message: string, color: string): void {
     const text = label(this.scene, Math.max(150, Math.min(1130, position.x)), Math.max(145, Math.min(625, position.y - 26)), message, 17, color)
-      .setOrigin(0.5).setDepth(6).setBackgroundColor('#0b1825dd').setPadding(7, 4);
+      .setOrigin(0.5).setDepth(31).setBackgroundColor('#0b1825dd').setPadding(7, 4);
     this.notices.push({ text, age: 0 });
     if (this.notices.length > 6) this.notices.shift()!.text.destroy();
   }
@@ -55,10 +55,18 @@ export class GameEffects {
   }
   draw(): void {
     const g = this.graphics.clear();
-    for (const spark of this.sparks) g.fillStyle(spark.color, 1 - spark.age / spark.life).fillCircle(spark.x, spark.y, spark.size);
+    for (const spark of this.sparks) {
+      const alpha=1-spark.age/spark.life;
+      g.lineStyle(spark.size,spark.color,alpha).lineBetween(spark.x,spark.y,spark.x-spark.vx*.035,spark.y-spark.vy*.035);
+      g.fillStyle(0xe9faff,alpha*.65).fillCircle(spark.x,spark.y,spark.size*.5);
+    }
     for (const ring of this.rings) {
       const progress = ring.age / ring.life;
-      g.lineStyle(2 - progress, ring.color, 1 - progress).strokeCircle(ring.x, ring.y, 4 + ring.size * progress);
+      if(ring.size>50&&progress<.4){
+        g.fillStyle(0xf2ffff,(1-progress/.4)*.8).fillCircle(ring.x,ring.y,9+progress*25);
+        g.fillStyle(ring.color,(1-progress/.4)*.12).fillCircle(ring.x,ring.y,25+progress*80);
+      }
+      g.lineStyle(3 - progress*2, ring.color, 1 - progress).strokeCircle(ring.x, ring.y, 4 + ring.size * progress);
     }
   }
 }

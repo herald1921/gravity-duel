@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { drawPlanetSurface } from './PlanetArt.js';
 import { WORLD } from '../config.js';
 import type { CelestialBody } from '../entities/CelestialBody.js';
 import type { PlayerId, Ship } from '../entities/Ship.js';
@@ -25,7 +26,7 @@ export function drawBackground(scene: Phaser.Scene): void {
   g.lineStyle(1,0x82bdd9,0.07).strokeEllipse(880,380,1100,820).strokeEllipse(880,380,1420,1080);
   g.lineStyle(1,0x9bc5dd,0.16).strokeRoundedRect(12,12,1256,696,16);
 }
-export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, seconds=0): void {
+export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, seconds=0, textured=true): void {
   const {x,y,radius:r,type}=body;
   if(type==='blackHole') {
     g.save().translateCanvas(x,y).rotateCanvas(-0.35);
@@ -51,6 +52,12 @@ export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, se
     g.lineStyle(2,0xffe3a4,0.9).strokeCircle(x,y,body.collisionRadius); return;
   }
   const moon=type==='moon';
+  if(textured&&drawPlanetSurface(g,body)){
+    const color=moon?0xc4d4e5:0x7ddce6;
+    for(let i=4;i>0;i--)g.lineStyle(i*2,color,.035).strokeCircle(x,y,r+i);
+    g.lineStyle(1.5,color,.65).beginPath().arc(x,y,r,-2.8,-.6).strokePath();
+    return;
+  }
   for(let i=6;i>0;i--) g.fillStyle(moon?0xb4bbdd:0x5de5ed,0.022).fillCircle(x,y,r+i*3);
   g.fillStyle(moon?0x39465e:0x123d58).fillCircle(x,y,r);
   for(let i=0;i<24;i++) {
@@ -58,6 +65,11 @@ export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, se
     g.fillStyle(Phaser.Display.Color.GetColor(c.r,c.g,c.b)).fillCircle(x-i*r*.014,y-i*r*.012,r-i*r*.022);
   }
   if(!moon) {
+    for (let band = 0; band < 3; band++) {
+      const cy = y + (band - 1) * r * .36;
+      g.lineStyle(Math.max(1, r * .035), 0xc9ffff, .15).beginPath().arc(x - r * .1, cy, r * .68, 3.5 + band * .12, 5.5).strokePath();
+    }
+
     for(let n=0;n<5;n++) {
       const a=n*2.25+.6, cx=x+Math.cos(a)*r*.48, cy=y+Math.sin(a)*r*.45;
       g.fillStyle(n%2?0x1f6574:0x276f7d,0.6).beginPath();
@@ -79,7 +91,14 @@ export function drawBody(g: Phaser.GameObjects.Graphics, body: CelestialBody, se
 export function drawShip(g: Phaser.GameObjects.Graphics, ship: Pick<Ship,'x'|'y'|'angle'|'id'|'thrusting'> & {hullAngle?:number}, seconds:number, paint?:number): void {
   const color=playerColor(ship.id),hull=paint??color,heading=ship.hullAngle??ship.angle;
   g.save().translateCanvas(ship.x,ship.y).rotateCanvas(heading);
+  g.lineStyle(1, color, .32).beginPath().arc(0, 0, 29, 0.55, 2.6).strokePath();
+  g.lineStyle(1, color, .32).beginPath().arc(0, 0, 29, -2.6, -0.55).strokePath();
   g.fillStyle(color,.055).fillCircle(0,0,33);
+  for (const side of [-1, 1]) {
+    g.fillStyle(0x091725).lineStyle(1, color, .8).fillRoundedRect(-21, side * 17 - 4, 18, 8, 3).strokeRoundedRect(-21, side * 17 - 4, 18, 8, 3);
+    g.fillStyle(0xe6ffff,.9).fillRect(-18,side * 17 - 1,8,2);
+  }
+
   if(ship.thrusting) {
     const f=15+Math.sin(seconds*46)*5;
     g.fillStyle(color,.22).fillTriangle(-13,-8,-13,8,-29-f,0);

@@ -21,7 +21,7 @@ export function createBody(id: string, type: CelestialBodyType, x: number, y: nu
   const body = { id, type, x, y, ...defaults[type], ...overrides };
   const collisionRadius = overrides.collisionRadius ?? body.radius;
   return { ...body, collisionRadius, orbitCaptureRadius: overrides.orbitCaptureRadius ??
-    (type === 'planet' || type === 'moon' ? collisionRadius + (type === 'moon' ? C.MOON_CAPTURE_PADDING : C.ORBIT_CAPTURE_PADDING) : undefined) };
+    (collisionRadius + (type === 'moon' ? C.MOON_CAPTURE_PADDING : C.ORBIT_CAPTURE_PADDING)) };
 }
 type Position = { x: number; y: number };
 let ephemeris: Map<OrbitAnchor, Map<number, Position>> | undefined;

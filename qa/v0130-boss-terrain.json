@@ -1,0 +1,134 @@
+{
+  "old": {
+    "cases": 12,
+    "hits": 0,
+    "details": [
+      {
+        "map": "unit-1-7",
+        "targetY": 200,
+        "hit": false
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 300,
+        "hit": false
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 450,
+        "hit": false
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 550,
+        "hit": false
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 200,
+        "hit": false
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 300,
+        "hit": false
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 450,
+        "hit": false
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 550,
+        "hit": false
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 200,
+        "hit": false
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 300,
+        "hit": false
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 450,
+        "hit": false
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 550,
+        "hit": false
+      }
+    ]
+  },
+  "current": {
+    "cases": 12,
+    "hits": 12,
+    "details": [
+      {
+        "map": "unit-1-7",
+        "targetY": 200,
+        "hit": true
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 300,
+        "hit": true
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 450,
+        "hit": true
+      },
+      {
+        "map": "unit-1-7",
+        "targetY": 550,
+        "hit": true
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 200,
+        "hit": true
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 300,
+        "hit": true
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 450,
+        "hit": true
+      },
+      {
+        "map": "unit-2-10",
+        "targetY": 550,
+        "hit": true
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 200,
+        "hit": true
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 300,
+        "hit": true
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 450,
+        "hit": true
+      },
+      {
+        "map": "unit-3-13",
+        "targetY": 550,
+        "hit": true
+      }
+    ]
+  }
+}

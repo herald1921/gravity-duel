@@ -15,7 +15,7 @@ function replaceExactlyOnce(source, before, after) {
 }
 const result = await build({ ...bundleOptions, entryPoints: ['src/main.ts'],
   define: { 'import.meta.env.DEV': 'false', 'import.meta.env.VITE_GAME_PLATFORM': '"playtest"' },
-  loader: { '.css': 'empty' },
+  loader: { '.css': 'empty', '.jpg': 'dataurl' },
   plugins: [{ name: 'embed-local-assets', setup(builder) {
     builder.onLoad({ filter: /TrajectoryPlanner\.ts$/ }, async args => ({ loader: 'ts',
       contents: replaceExactlyOnce(await readFile(args.path, 'utf8'),

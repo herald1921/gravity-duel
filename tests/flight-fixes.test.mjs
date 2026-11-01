@@ -72,7 +72,7 @@ test('capture guarantees non-intersecting bound ellipses for extreme incoming di
   const b=initial({vx:speed*Math.cos(k*Math.PI/12),vy:speed*Math.sin(k*Math.PI/12)});
   captureOrbit(b,body,0);const o=b.orbitState;
   assert.ok(Number.isFinite(o.semiMajorAxis));assert.ok(o.eccentricity<=C.ORBIT_MAX_ECCENTRICITY+1e-8);
-  assert.ok(o.periapsis>=107-1e-7);assert.ok(o.apoapsis<=310+1e-7);
+  assert.ok(o.periapsis>=107-1e-7);assert.ok(o.apoapsis<=body.orbitCaptureRadius*C.ORBIT_MAX_APOAPSIS_MULTIPLIER+1e-7);
  }
 });
 test('elliptical preview and moving-center live simulation remain identical',()=>{

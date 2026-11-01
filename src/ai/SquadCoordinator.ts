@@ -4,11 +4,11 @@ import { bodyAt, inPulsarBeam, type CelestialBody } from '../entities/CelestialB
 import type { Pickup } from '../entities/PowerUp.js';
 import { segmentCircleContact, type Vec2 } from '../physics/gravity.js';
 import { difficultyFor } from './Difficulty.js';
-import { wantsPickup } from './PickupTactics.js';
+import { preferredRange, wantsPickup } from './PickupTactics.js';
 
 export type SquadRole = 'PRESSURE' | 'FLANK' | 'INTERCEPT';
 export interface SquadOrder {
-  role: SquadRole; waypoint: Vec2; advance: boolean; side: number; pickupId?: number;
+  role: SquadRole; waypoint: Vec2; advance: boolean; side: number; pickupId?: number; targetId?: PlayerId;
 }
 /** Shared, deliberately delayed observations and role assignments for one enemy squad. */
 export class SquadCoordinator {
@@ -29,13 +29,13 @@ export class SquadCoordinator {
     const changed = members !== this.members;
     if (this.observeIn > 0 && !changed) return;
     this.members = members; this.observeIn = Math.max(0.45, difficultyFor(this.level).reaction);
-    this.contact = { x: target.x, y: target.y, vx: target.vx, vy: target.vy };
+    this.contact = { x: target.x + target.vx * 0.35, y: target.y + target.vy * 0.35, vx: target.vx, vy: target.vy };
     if (this.rolesIn <= 0 || changed || !living.some(s => s.id === this.pressureId)) {
-      // The closest armed/shielded pilot holds attention while partners take other angles.
-      this.pressureId = [...living].sort((a, b) =>
-        (Math.hypot(a.x - target.x, a.y - target.y) - (a.shield ? 100 : 0)) -
-        (Math.hypot(b.x - target.x, b.y - target.y) - (b.shield ? 100 : 0)) || a.id - b.id)[0].id;
-      this.rolesIn = 7;
+      // Prefer a ready gun with a clear lane; its partner can safely cross under cover.
+      const readiness=(s:Ship)=>Math.hypot(s.x-target.x,s.y-target.y)-(s.shield?100:0)-(s.specialShot?80:0)+
+        (s.jammedFor>0?250:0)+(bodies.some(b=>segmentCircleContact(s,target,{...bodyAt(b,time),radius:b.collisionRadius+12})!==null)?350:0);
+      this.pressureId=[...living].sort((a,b)=>readiness(a)-readiness(b)||a.id-b.id)[0].id;
+      this.rolesIn = 3.5;
     }
     const pressure = living.find(s => s.id === this.pressureId)!;
     const angle = Math.atan2(pressure.y - this.contact.y, pressure.x - this.contact.x);
@@ -45,14 +45,14 @@ export class SquadCoordinator {
     const roles: SquadRole[] = ['PRESSURE', 'FLANK', 'INTERCEPT'];
     const ordered = [pressure, ...living.filter(s => s !== pressure)];
     ordered.forEach((ship, i) => {
-      const role = roles[i];
       const speed = Math.hypot(this.contact.vx, this.contact.vy);
+      const role = i===1&&speed>85?'INTERCEPT':roles[i];
       const heading = role === 'PRESSURE' ? angle : role === 'INTERCEPT' && speed > 35 ?
-        Math.atan2(this.contact.vy, this.contact.vx) : angle + (i === 1 ? 1.25 : -1.25);
-      const radius = role === 'PRESSURE' ? 340 : role === 'FLANK' ? 300 : 350;
+        Math.atan2(this.contact.vy, this.contact.vx) : angle + (i === 1 ? 1.9 : -1.9);
+      const radius = Math.min(430, preferredRange(ship));
       const waypoint = this.position(heading, radius, current, claimed, time + 0.6, role === 'PRESSURE');
       claimed.push(waypoint);
-      this.orders.set(ship.id, { role, waypoint, side: i === 2 ? -1 : 1,
+      this.orders.set(ship.id, { role, waypoint, targetId: target.id, side: i === 2 ? -1 : 1,
         advance: role !== 'PRESSURE' && time < this.coveredUntil });
     });
     // Reserve resources centrally: partners never chase the same pickup.

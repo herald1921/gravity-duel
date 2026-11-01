@@ -17,9 +17,10 @@ export type MatchEvent =
   | { type: 'shot'; owner: PlayerId; position: Vec2; kind: ProjectileKind }
   | { type: 'impact'; position: Vec2; kind?: ProjectileKind }
   | { type: 'orbitalEnd'; position: Vec2; owner: PlayerId; reason: 'collision' | 'expired' | 'replaced' | 'lost'; bodyId?: string }
-  | { type: 'death'; victim: PlayerId; position: Vec2; highlight?: Highlight; owner?: PlayerId }
+  | { type: 'death'; victim: PlayerId; cause?: Death['cause']; position: Vec2; highlight?: Highlight; owner?: PlayerId }
   | { type: 'mechanic'; sound: MechanicSound; position: Vec2; pickupType?: PowerUpType; owner?: PlayerId }
   | { type: 'laser'; owner: PlayerId; position: Vec2 }
+  | { type: 'feedback'; position: Vec2; message: string; color: string }
   | { type: 'respawn' };
 export class Match {
   readonly ships: Ship[];
@@ -40,7 +41,7 @@ export class Match {
   private pickupIn: number; private pickupSequence = 0; private spawnCursor = 0;
   private events: MatchEvent[] = [];
   private roundHighlights = new Set<Highlight>();
-  constructor(readonly map: GameMap, readonly targetScore = C.FIRST_TO_SCORE) {
+  constructor(readonly map: GameMap, readonly targetScore = !map.teams && map.unitIndex === 0 && (map.stageIndex ?? 99) < 2 ? 2 : C.FIRST_TO_SCORE) {
     this.ships = [new Ship(1, map.player1Spawn), new Ship(2, map.player2Spawn)];
     for (const [i, spawn] of (map.extraEnemySpawns ?? []).slice(0, 2).entries()) this.ships.push(new Ship((i + 3) as PlayerId, spawn));
     if (this.freeForAll) for (const ship of this.ships) this.scores[ship.id] = 0;
@@ -103,11 +104,14 @@ export class Match {
   }
   private attack(victim: PlayerId, owner: PlayerId, deaths: Map<PlayerId, Death>, bullet?: Bullet): void {
     if (deaths.has(victim) || !this.ships[victim - 1].alive || this.ships[victim - 1].invulnerableFor > 0) return;
-    if (this.boss && victim === 2 && this.boss.phase !== 'recover') return;
+    if (this.boss && victim === 2 && !this.boss.vulnerable) {
+      this.events.push({ type: 'feedback', position: this.ships[1], message: 'ARMOR — WAIT FOR CYAN', color: '#ffb96e' }); return;
+    }
     const ship = this.ships[victim - 1];
+    if (this.boss && victim === 2) this.boss.registerHit();
     if (blockAttack(ship)) {
       this.events.push({ type: 'mechanic', sound: 'shieldBreak', position: { x: ship.x, y: ship.y } });
-    } else if (ship.hp > 1) { ship.hp--; ship.invulnerableFor = 0.65; this.events.push({ type: 'mechanic', sound: 'shieldBreak', position: { x: ship.x, y: ship.y } });
+    } else if (ship.hp > 1) { ship.hp--; this.events.push({ type: 'feedback', position: { x: ship.x, y: ship.y }, message: 'CORE HIT · ' + ship.hp + ' LEFT', color: '#69f4df' }); ship.invulnerableFor = 0.65; this.events.push({ type: 'mechanic', sound: 'shieldBreak', position: { x: ship.x, y: ship.y } });
     } else deaths.set(victim, { victim, owner, cause: victim === owner ? 'self' : 'shot',
       ...(bullet && victim !== owner ? { highlight: shotHighlight(bullet) } : {}) });
   }
@@ -225,12 +229,10 @@ export class Match {
   }
   private bossVolley(): void {
     const boss = this.boss!, ship = this.ships[1];
-    if (boss.laser) { ship.specialShot = 'laser'; ship.cooldown = 0; this.fire(2); return; }
+    if (boss.laser) { ship.angle = boss.angle; ship.specialShot = 'laser'; ship.cooldown = 0; this.fire(2); return; }
     const available = Math.max(0, 12 - this.bullets.filter(b => b.ownerId === 2).length);
-    for (let i = 0; i < Math.min(boss.rays, available); i++) {
-      const angle = boss.angle + i * Math.PI * 2 / boss.rays;
-      const shot = createProjectile(ship, angle, 'normal', this.time);
-      shot.x = ship.x + Math.cos(angle) * (ship.radius + 10); shot.y = ship.y + Math.sin(angle) * (ship.radius + 10);
+    for (const angle of boss.shotAngles.slice(0, available)) {
+      const shot = createProjectile({...ship,muzzleOffset:ship.radius+10}, angle, 'normal', this.time);
       this.bullets.push({ ...shot, trail: [] });
       this.events.push({ type: 'shot', owner: 2, position: { x: shot.x, y: shot.y }, kind: 'normal' });
     }
@@ -253,7 +255,7 @@ export class Match {
     for (const death of deaths) {
       this.deathCounts[death.victim]++;
       const ship = this.ships[death.victim - 1]; ship.alive = false; ship.hp = 0; ship.laserCharge = null; ship.thrusting = false;
-      this.events.push({ type: 'death', victim: death.victim, owner: death.owner, position: { x: ship.x, y: ship.y }, highlight: death.highlight });
+      this.events.push({ type: 'death', victim: death.victim, cause: death.cause, owner: death.owner, position: { x: ship.x, y: ship.y }, highlight: death.highlight });
       if (this.ships.length > 2 && death.victim > 1 && death.cause === 'shot' && death.highlight && (!this.freeForAll || death.owner === 1)) this.roundHighlights.add(death.highlight);
     }
     if (this.deathmatch) {

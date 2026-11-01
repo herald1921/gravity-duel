@@ -21,6 +21,8 @@
     "src/platform/CrazyGames.ts",
     "src/net/input.ts",
     "src/net/OnlineClient.ts",
-    "src/vite-env.d.ts"
+    "src/vite-env.d.ts",
+    "src/rendering/AimPreview.ts",
+    "src/rendering/BossPreview.ts"
   ]
 }

@@ -11,7 +11,8 @@ import { label, playerColor } from '../rendering/draw.js';
 import { button, soundButton } from './widgets.js';
 interface Actions { pause(): void; resume(): void; restart(): void; menu(): void; next(): void; again(): void }
 export class GameHUD {
-  private freeForAll: boolean;
+  private multiPilots: boolean;
+  private feed: Phaser.GameObjects.Text; private feedLines: string[]=[]; private feedTime=0;
   private panelArt: Phaser.GameObjects.Graphics; private emblem: Phaser.GameObjects.Graphics;
   private rewardText: Phaser.GameObjects.Text; private rewards: BadgeId[] = []; private resultTime = 0;
   private rule: Phaser.GameObjects.Text; private score: Phaser.GameObjects.Text; private bars: Phaser.GameObjects.Graphics;
@@ -23,7 +24,8 @@ export class GameHUD {
   private notice: Phaser.GameObjects.Text; private noticeTime = 0;
   private debugText?: Phaser.GameObjects.Text; private panelKey = ''; private primary?: () => void;
   constructor(private scene: Phaser.Scene, private mode: GameMode, match: Match, private arcadeIndex: number | null, private callbacks: Actions, private online?:OnlineClient) {
-    this.freeForAll = match.freeForAll;
+    this.multiPilots=match.ships.length>2;
+    this.feed=label(scene,1240,105,'',18,'#d1e5f2').setOrigin(1,0).setAlign('right').setBackgroundColor('#081420dd').setPadding(8,5).setDepth(12).setVisible(false);
     scene.add.graphics().setDepth(10).fillStyle(0x0c1d31, 0.97).fillRoundedRect(16, 12, 1248, 84,14).lineStyle(1, 0x71b5c4, 0.35).lineBetween(32, 95, 1248, 95);
     label(scene, 32, 23, match.map.name, 24).setDepth(11);
     label(scene, 32, 60, online ? (match.map.teams?'ONLINE · 2 vs 2':'ONLINE · FOUR-WAY') : arcadeIndex === null ? 'FREE PLAY' : 'UNIT ' + (match.map.unitIndex!+1) + ' · ' + (match.map.stageIndex!+1) + '/' + match.map.unitLength, 22, '#9ab5ce').setDepth(11);
@@ -49,10 +51,12 @@ export class GameHUD {
     if (import.meta.env.DEV) this.debugText = label(scene, 30, 167, '', 13, '#c0a1ff').setDepth(12);
   }
   announce(text: string, color = '#b6ff74'): void { this.notice.setText(text).setColor(color); this.noticeTime = 2.5; }
+  recordElimination(text:string):void{this.feedLines.push(text);this.feedLines=this.feedLines.slice(-3);this.feed.setText(this.feedLines.join('\n'));this.feedTime=5;}
+  clearFeed():void{this.feedTime=0;this.feedLines=[];}
   setRewards(ids: BadgeId[]): void { this.rewards = ids; }
-  tick(dt: number): void { this.noticeTime = Math.max(0, this.noticeTime - dt); this.resultTime += dt; }
-  name(id: PlayerId): string { if(this.online)return id===this.online.id?'YOU':this.online.room?.players.some(p=>p.id===id&&p.connected&&p.visible)?'P'+id:'AI'+id; return this.mode === '1p' ? id === 1 ? 'YOU' : this.freeForAll ? 'AI ' + (id - 1) : 'AI' : 'P' + id; }
-  private scoreText(match: Match): string { if(match.map.teams)return 'TEAM 1 '+match.scores[1]+' : '+match.scores[2]+' TEAM 2'; return match.freeForAll ? match.ships.map(s => this.name(s.id) + ' ' + match.scores[s.id]).join(' / ') : this.name(1) + ' ' + match.scores[1] + ' : ' + match.scores[2] + ' ' + this.name(2); }
+  tick(dt: number): void { this.feedTime=Math.max(0,this.feedTime-dt); this.noticeTime = Math.max(0, this.noticeTime - dt); this.resultTime += dt; }
+  name(id: PlayerId): string { if(this.online)return id===this.online.id?'YOU':this.online.room?.players.some(p=>p.id===id&&p.connected&&p.visible)?'P'+id:'AI'+id; return this.mode === '1p' ? id === 1 ? 'YOU' : this.multiPilots ? 'AI ' + (id - 1) : 'AI' : 'P' + id; }
+  private scoreText(match: Match): string { if(match.map.teams)return 'TEAM 1 '+match.scores[1]+' : '+match.scores[2]+' TEAM 2'; return match.freeForAll ? match.ships.map(s => (match.phase==='playing'&&!s.alive?'× ':'') + this.name(s.id) + ' ' + match.scores[s.id]).join(' / ') : this.name(1) + ' ' + match.scores[1] + ' : ' + match.scores[2] + ' ' + this.name(2); }
   activatePrimary(): void { if (!pause.has('ad')) this.primary?.(); }
   private panel(key: string, title: string, detail: string, actions: [string, () => void][]): void {
     this.overlay.setVisible(true); this.banner.setVisible(false); this.audio.setVisible(key === 'pause'); this.rewardText.setVisible(false);
@@ -88,7 +92,9 @@ export class GameHUD {
     if (!profile.persistent && this.mode === '1p') this.rewardText.setText(this.rewardText.text + '\nProgress lasts only this visit.');
   }
   update(match: Match, debug: boolean, fps: number): void {
+    this.feed.setVisible(this.feedTime>0&&!pause.paused&&match.phase!=='matchOver');
     this.score.setText(this.scoreText(match));
+    if (match.boss) this.rule.setText(match.boss.vulnerable ? 'CORE OPEN · ONE HIT' : match.boss.phase==='recover'?'REPOSITION FOR NEXT VOLLEY':'DODGE · WAIT FOR CYAN');
     if (match.deathmatch) this.rule.setText('FIRST TO 4 · ' + (match.remaining > 0 ? Math.ceil(match.remaining) + 's' : 'OVERTIME'));
     this.bars.clear();
     (this.online?[match.ships[this.online.id-1],match.ships.find(s=>s.id!==this.online!.id)!]:match.ships.slice(0, 2)).forEach((ship, i) => {
@@ -115,7 +121,7 @@ export class GameHUD {
 
       if (this.arcadeIndex !== null && match.winner === 1) {
         if (nextArena(this.arcadeIndex) === null) this.panel('complete', 'GRAVITY MASTER', 'ALL 3 UNITS / 30 ARENAS COMPLETE', [['PLAY AGAIN', c.again], ['MAIN MENU', c.menu]]);
-        else this.panel('clear', 'ARENA CLEAR', match.map.name + '  /  ' + this.scoreText(match), [['NEXT ARENA', c.next], ['RETRY', c.restart], ['MAIN MENU', c.menu]]);
+        else this.panel('clear', 'ARENA CLEAR', match.map.name + '  /  ' + this.scoreText(match) + (match.lastDeath?.highlight ? '\n' + match.lastDeath.highlight.replace('PORTAL', 'WORMHOLE') : ''), [['NEXT ARENA', c.next], ['RETRY', c.restart], ['MAIN MENU', c.menu]]);
       } else this.panel('over', match.winner === 1 && this.mode === '1p' ? 'YOU WIN' : this.mode === '1p' ? 'TRY AGAIN' : this.name(match.winner!) + ' WINS', this.scoreText(match) + (this.mode === '1p' && match.winner !== 1 ? '\n' + this.name(match.winner!) + ' WINS · ' + defeatTip(match) : '\nA well-earned victory.'), [['REMATCH', c.restart], ['MAIN MENU', c.menu]]);
       this.drawResult(match);
     } else {
